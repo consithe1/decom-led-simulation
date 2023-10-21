@@ -3,6 +3,12 @@ from tkinter import filedialog
 from src.rgb_leds.LEDStrip import LEDStrip
 
 from PIL import ImageTk, Image
+import math
+
+
+def calculate_distance(coords):
+    x1, y1, x2, y2 = coords
+    return int(math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)))
 
 
 class LEDSimulator(Tk):
@@ -20,7 +26,8 @@ class LEDSimulator(Tk):
         self.width = width
         self.height = height
 
-        self.referential = {"origin_x": None, "origin_y": None, "dest_x": None, "dest_y": None}
+        self.referential = {"last_id": None, "origin_x": None, "origin_y": None, "dest_x": None, "dest_y": None}
+        self.referential_line = None
         self.measuring = False
 
         self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}")
@@ -71,7 +78,21 @@ class LEDSimulator(Tk):
 
         # FRAME MEASURING
         self.frame_measuring = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
-        Label(self.frame_measuring, text="Dimensions").grid(row=0, column=0)
+        Label(self.frame_measuring, text="Dimensions").grid(row=0, columnspan=3, sticky='ew')
+        self.distance_pixel_var = StringVar()
+        self.distance_pixel_var.set(str(0))
+        self.distance_pixel_label = Label(self.frame_measuring, textvariable=self.distance_pixel_var)
+        self.distance_pixel_label.grid(row=1, column=0, sticky='ew')
+        Label(self.frame_measuring, text="px =").grid(row=1, column=1, sticky='ew')
+        self.distance_mm_var = StringVar()
+        self.distance_mm_var.set(str(1000))
+        self.distance_mm_entry = Entry(self.frame_measuring, textvariable=self.distance_mm_var)
+        self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
+        Label(self.frame_measuring, text="mm").grid(row=1, column=3, sticky='ew')
+        Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=2, sticky="ew", columnspan=4)
+        Button(self.frame_measuring, text='Validate referential', command=self.validate_equivalence_px_to_mm).grid(row=3, sticky='ew', columnspan=4)
+        self.px_to_mm_label = Label(self.frame_measuring, text="Equivalent: None")
+        self.px_to_mm_label.grid(row=4, columnspan=4, sticky="ew")
         self.frame_measuring.grid(row=1, column=0, sticky="news", padx=5)
 
         # FRAME DRAWING
@@ -116,11 +137,11 @@ class LEDSimulator(Tk):
             for child in self.frame_measuring.winfo_children():
                 child.configure(state='disable')
             for child in self.frame_drawing.winfo_children():
-                child.configure(state='active')
+                child.configure(state='normal')
 
         if self.mode.get() == "measuring":
             for child in self.frame_measuring.winfo_children():
-                child.configure(state='active')
+                child.configure(state='normal')
             for child in self.frame_drawing.winfo_children():
                 child.configure(state='disable')
 
@@ -142,8 +163,12 @@ class LEDSimulator(Tk):
             self.button_1_pressed(event)
 
         if self.mode.get() == "measuring":
-            self.image_canvas.delete("measuring")
-            self.image_canvas.create_line(self.referential['origin_x'], self.referential['origin_y'], event.x, event.y, fill="blue", dash=(10,5), width=2, tags='measuring', arrow=BOTH)
+            if self.referential['last_id'] is not None:
+                self.clear_canvas(self.referential['last_id'])
+            line_id = self.image_canvas.create_line(self.referential['origin_x'], self.referential['origin_y'], event.x, event.y, fill="blue", dash=(10,5), width=2, tags='measuring', arrow=BOTH)
+            self.referential['last_id'] = line_id
+            self.referential_line = [line_id, self.image_canvas.coords(line_id)]
+            self.update_referential(calculate_distance(self.image_canvas.coords(line_id)))
 
     def open_image(self):
         self.clear_canvas()
@@ -159,15 +184,28 @@ class LEDSimulator(Tk):
         self.cursor_pos_var.set(f"Position: ({event.x}, {event.y})")
         self.cursor_pos_label.update()
 
+    def update_referential(self, length):
+        self.distance_pixel_var.set(f"{length}")
+        self.distance_pixel_label.update()
+
     def undo_last_draw(self):
         if len(self.led_strips) != 0:
             to_delete = self.led_strips.pop()
             for id_line, _ in to_delete.lines:
                 self.image_canvas.delete(id_line)
 
-    def clear_canvas(self, tag="drawing"):
-        self.image_canvas.delete(tag)
-        self.led_strips = []
+    def clear_canvas(self, id_line=None):
+        if self.mode.get() == 'drawing':
+
+            for strip in self.led_strips:
+                for id_line, _ in strip.lines:
+                    self.image_canvas.delete(id_line)
+            self.led_strips = []
+
+        if self.mode.get() == 'measuring':
+            if self.referential_line is not None:
+                self.image_canvas.delete(self.referential_line[0])
+            self.referential_line = None
 
     def update_density_value(self):
         print(f"LED Density: {self.led_density.get()} LEDs/m")
@@ -176,10 +214,16 @@ class LEDSimulator(Tk):
         if self.mode.get() == "drawing":
             led_strip = LEDStrip(self.current_line.copy())
             self.led_strips.append(led_strip)
-            print("Line length:", led_strip.length, "pixels")
             self.current_line = []
 
         if self.mode.get() == "measuring":
             self.referential['dest_x'] = event.x
             self.referential['dest_y'] = event.y
             self.measuring = False
+
+    def validate_equivalence_px_to_mm(self):
+        equivalence = 0
+        if self.referential_line is not None:
+            equivalence = int(self.distance_mm_var.get()) / int(self.distance_pixel_var.get())
+        self.px_to_mm_label.config(text=f"Equivalent:{1} px = {equivalence:.2f} mm")
+
