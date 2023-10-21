@@ -9,4 +9,4 @@ class LED:
 
         self.color = None
 
-
+        self.x, self.y = coordinates

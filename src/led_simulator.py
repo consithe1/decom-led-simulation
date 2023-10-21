@@ -1,6 +1,5 @@
 from tkinter import *
 from tkinter import filedialog
-from src.rgb_leds.LEDStrip import LEDStrip
 
 from PIL import ImageTk, Image
 import math
@@ -15,9 +14,11 @@ class LEDSimulator(Tk):
     def __init__(self):
         super().__init__()
 
+        self.px_to_mm_val = 1
         self.tk_image = None
         self.current_line = []
         self.led_strips = []
+        self.leds = []
 
         self.image_file = None
         self.window_canvas = None
@@ -44,11 +45,12 @@ class LEDSimulator(Tk):
         self.menu_files.add_command(label='Open image', command=self.open_image)
 
         # FRAME DESCRIPTION
-        self.frame_description = Frame(self, bg="cyan", width=50, height=150)
+        self.frame_description = Frame(self, bg="cyan", highlightbackground="black", highlightthickness=1)
         self.frame_description.columnconfigure(0, weight=1)
-        Label(self.frame_description, text="Description du projet").pack(expand=True)
+        self.label_description = Label(self.frame_description, text="Description du projet")
+        self.label_description.pack(expand=True, fill=BOTH)
 
-        self.frame_description.grid(sticky="nsew")
+        self.frame_description.grid(sticky="nsew", padx=5, pady=5)
 
         # FRAME IMAGE/CANVAS
         self.frame_image = Frame(self, bg="lavender")
@@ -91,10 +93,8 @@ class LEDSimulator(Tk):
         self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
         Label(self.frame_measuring, text="mm").grid(row=1, column=3, sticky='ew')
         Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=2, sticky="ew", columnspan=4)
-        Button(self.frame_measuring, text='Validate referential', command=self.validate_equivalence_px_to_mm).grid(
-            row=3, sticky='ew', columnspan=4)
         self.px_to_mm_label = Label(self.frame_measuring, text="Equivalent: None")
-        self.px_to_mm_label.grid(row=4, columnspan=4, sticky="ew")
+        self.px_to_mm_label.grid(row=3, columnspan=4, sticky="ew")
         self.frame_measuring.grid(row=1, column=0, sticky="news", padx=5)
 
         # FRAME DRAWING
@@ -102,14 +102,14 @@ class LEDSimulator(Tk):
         Label(self.frame_drawing, text="LED Drawing").grid(row=0, sticky="ew", columnspan=2)
 
         self.led_densities = [30, 60, 144]
-        self.led_density = StringVar()
-        self.led_density.set(str(self.led_densities[0]))
+        self.led_density_var = StringVar()
+        self.led_density_var.set(str(self.led_densities[0]))
         for index, shape in enumerate(self.led_densities):
-            Radiobutton(self.frame_drawing, text=f"{shape} LEDs/m", variable=self.led_density, value=shape,
+            Radiobutton(self.frame_drawing, text=f"{shape} LEDs/m", variable=self.led_density_var, value=shape,
                         command=self.update_density_value).grid(row=index + 2, column=0, sticky="w")
         Button(self.frame_drawing, text="Clear", command=self.clear_canvas).grid(row=2, column=1, sticky="ew")
         Button(self.frame_drawing, text="Undo", command=self.undo_last_draw).grid(row=3, column=1, sticky="ew")
-        Button(self.frame_drawing, text="Generate LED strip").grid(row=4, column=1, sticky="ew")  # TODO: add command
+        Button(self.frame_drawing, text="Generate LED strip", command=self.generate_led_strip).grid(row=4, column=1, sticky="ew")
         Button(self.frame_drawing, text="Save LED strip").grid(row=5, column=1, sticky="ew")  # TODO: add command
 
         self.frame_drawing.grid(row=1, column=1, sticky="news", padx=5)
@@ -195,16 +195,16 @@ class LEDSimulator(Tk):
     def undo_last_draw(self):
         if len(self.led_strips) != 0:
             to_delete = self.led_strips.pop()
-            for id_line, _ in to_delete.lines:
+            for id_line, _ in to_delete:
                 self.image_canvas.delete(id_line)
 
     def clear_canvas(self, id_line=None):
         if self.mode.get() == 'drawing':
 
-            for strip in self.led_strips:
-                for id_line, _ in strip.lines:
-                    self.image_canvas.delete(id_line)
+            while len(self.led_strips) != 0:
+                self.undo_last_draw()
             self.led_strips = []
+            self.update_description()
 
         if self.mode.get() == 'measuring':
             if self.referential_line is not None:
@@ -213,19 +213,20 @@ class LEDSimulator(Tk):
             self.label_measure.destroy()
 
     def update_density_value(self):
-        print(f"LED Density: {self.led_density.get()} LEDs/m")
+        self.update_description()
 
     def button_1_released(self, event):
         if self.mode.get() == "drawing":
-            led_strip = LEDStrip(self.current_line.copy())
+            led_strip = self.current_line.copy()
             self.led_strips.append(led_strip)
             self.current_line = []
+            self.update_description()
 
         if self.mode.get() == "measuring":
             self.referential['dest_x'] = event.x
             self.referential['dest_y'] = event.y
             self.measuring = False
-            self.place_label_measure()
+            self.validate_equivalence_px_to_mm()
 
     def place_label_measure(self):
         self.label_measure = Label(self.frame_image, text=f"{self.distance_mm_var.get()} mm")
@@ -233,8 +234,25 @@ class LEDSimulator(Tk):
                                  y=(self.referential_line[1][1] + self.referential_line[1][3]) / 2 + 10)
 
     def validate_equivalence_px_to_mm(self):
-        equivalence = 0
+        self.px_to_mm_val = 1
         if self.referential_line is not None:
-            equivalence = int(self.distance_mm_var.get()) / int(self.distance_pixel_var.get())
-        self.px_to_mm_label.config(text=f"Equivalent:{1} px = {equivalence:.2f} mm")
+            self.px_to_mm_val = int(self.distance_mm_var.get()) / int(self.distance_pixel_var.get())
+        self.px_to_mm_label.config(text=f"Equivalent: {1} px = {self.px_to_mm_val:.2f} mm")
         self.place_label_measure()
+
+    def update_description(self):
+        total_length_px = 0
+        for strip in self.led_strips:
+            for strip_id, coords in strip:
+                total_length_px += calculate_distance(coords)
+        total_length_mm = int(total_length_px * self.px_to_mm_val)
+
+        number_leds = int(int(self.led_density_var.get()) * total_length_mm / 1000)
+
+        self.label_description.config(text=f"Total length: {total_length_mm} mm / # of LEDs: {number_leds}")
+
+    def generate_led_strip(self):
+        self.update_description()
+
+        # generate points on the led_strip lines
+
