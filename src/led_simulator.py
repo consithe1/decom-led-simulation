@@ -12,7 +12,7 @@ def calculate_distance(coords):
 
 
 class LEDSimulator(Tk):
-    def __init__(self, width=800, height=400):
+    def __init__(self):
         super().__init__()
 
         self.tk_image = None
@@ -23,8 +23,8 @@ class LEDSimulator(Tk):
         self.window_canvas = None
         self.window_background = None
         self.id_shape = None
-        self.width = width
-        self.height = height
+        self.width = self.winfo_screenwidth()
+        self.height = self.winfo_screenheight()
 
         self.referential = {"last_id": None, "origin_x": None, "origin_y": None, "dest_x": None, "dest_y": None}
         self.referential_line = None
@@ -60,6 +60,7 @@ class LEDSimulator(Tk):
         self.image_canvas.bind("<B1-Motion>", self.add_line)
         self.image_canvas.bind("<ButtonRelease-1>", self.button_1_released)
         self.frame_image.grid(row=1, sticky="nsew")
+        self.label_measure = Label(self.frame_image, text="")
 
         # FRAME OPTIONS
         self.frame_options = Frame(self, bg="forestgreen")
@@ -90,7 +91,8 @@ class LEDSimulator(Tk):
         self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
         Label(self.frame_measuring, text="mm").grid(row=1, column=3, sticky='ew')
         Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=2, sticky="ew", columnspan=4)
-        Button(self.frame_measuring, text='Validate referential', command=self.validate_equivalence_px_to_mm).grid(row=3, sticky='ew', columnspan=4)
+        Button(self.frame_measuring, text='Validate referential', command=self.validate_equivalence_px_to_mm).grid(
+            row=3, sticky='ew', columnspan=4)
         self.px_to_mm_label = Label(self.frame_measuring, text="Equivalent: None")
         self.px_to_mm_label.grid(row=4, columnspan=4, sticky="ew")
         self.frame_measuring.grid(row=1, column=0, sticky="news", padx=5)
@@ -165,7 +167,9 @@ class LEDSimulator(Tk):
         if self.mode.get() == "measuring":
             if self.referential['last_id'] is not None:
                 self.clear_canvas(self.referential['last_id'])
-            line_id = self.image_canvas.create_line(self.referential['origin_x'], self.referential['origin_y'], event.x, event.y, fill="blue", dash=(10,5), width=2, tags='measuring', arrow=BOTH)
+            line_id = self.image_canvas.create_line(self.referential['origin_x'], self.referential['origin_y'], event.x,
+                                                    event.y, fill="blue", dash=(10, 5), width=2, tags='measuring',
+                                                    arrow=BOTH)
             self.referential['last_id'] = line_id
             self.referential_line = [line_id, self.image_canvas.coords(line_id)]
             self.update_referential(calculate_distance(self.image_canvas.coords(line_id)))
@@ -206,6 +210,7 @@ class LEDSimulator(Tk):
             if self.referential_line is not None:
                 self.image_canvas.delete(self.referential_line[0])
             self.referential_line = None
+            self.label_measure.destroy()
 
     def update_density_value(self):
         print(f"LED Density: {self.led_density.get()} LEDs/m")
@@ -220,10 +225,16 @@ class LEDSimulator(Tk):
             self.referential['dest_x'] = event.x
             self.referential['dest_y'] = event.y
             self.measuring = False
+            self.place_label_measure()
+
+    def place_label_measure(self):
+        self.label_measure = Label(self.frame_image, text=f"{self.distance_mm_var.get()} mm")
+        self.label_measure.place(x=(self.referential_line[1][0] + self.referential_line[1][2]) / 2 - 30,
+                                 y=(self.referential_line[1][1] + self.referential_line[1][3]) / 2 + 10)
 
     def validate_equivalence_px_to_mm(self):
         equivalence = 0
         if self.referential_line is not None:
             equivalence = int(self.distance_mm_var.get()) / int(self.distance_pixel_var.get())
         self.px_to_mm_label.config(text=f"Equivalent:{1} px = {equivalence:.2f} mm")
-
+        self.place_label_measure()
