@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import filedialog
-import matplotlib.pyplot as plt
+from src.rgb_leds.referential import Referential
+from src.rgb_leds.LEDStrip import LEDStrip
 
 from PIL import ImageTk, Image
 import math
@@ -57,13 +58,12 @@ class LEDSimulator(Tk):
     def __init__(self):
         super().__init__()
 
-        self.px_to_mm_val = 1
+        self.referential = Referential()
+
         self.tk_image = None
-        self.current_line = []
-        self.led_lines = []
-        self.leds = []
-        self.previous_led_coords = None
-        self.distance_px_between_leds = 1
+        self.current_drawing_strip = []
+
+        self.led_strips: list[LEDStrip] = []
 
         self.image_file = None
         self.window_canvas = None
@@ -72,8 +72,6 @@ class LEDSimulator(Tk):
         self.width = self.winfo_screenwidth()
         self.height = self.winfo_screenheight()
 
-        self.referential = {"last_id": None, "origin_x": None, "origin_y": None, "dest_x": None, "dest_y": None}
-        self.referential_line = None
         self.measuring = False
 
         self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}")
@@ -107,7 +105,7 @@ class LEDSimulator(Tk):
         self.image_canvas.bind("<B1-Motion>", self.add_line)
         self.image_canvas.bind("<ButtonRelease-1>", self.button_1_released)
         self.frame_image.grid(row=1, sticky="nsew")
-        self.label_measure = Label(self.frame_image, text="")
+        self.label_ref = Label(self.frame_image, text=f"{self.referential.get_dist_mm_src_to_dest()} mm")
 
         # FRAME OPTIONS
         self.frame_options = Frame(self, bg="forestgreen")
@@ -132,12 +130,11 @@ class LEDSimulator(Tk):
         self.distance_pixel_label = Label(self.frame_measuring, textvariable=self.distance_pixel_var)
         self.distance_pixel_label.grid(row=1, column=0, sticky='ew')
         Label(self.frame_measuring, text="px =").grid(row=1, column=1, sticky='ew')
-        self.distance_mm_var = StringVar()
-        self.distance_mm_var.set(str(1000))
+        self.distance_mm_var = IntVar(value=1000)
+        self.distance_mm_var.trace_add('write', self.update_label_ref_callback)
         self.distance_mm_entry = Entry(self.frame_measuring, textvariable=self.distance_mm_var)
         self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
         Label(self.frame_measuring, text="mm").grid(row=1, column=3, sticky='ew')
-        Button(self.frame_measuring, text="Update equivalence", command=self.update_equivalence_px_to_mm).grid(row=2, sticky="ew", columnspan=4)
         Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=3, sticky="ew", columnspan=4)
         self.px_to_mm_label = Label(self.frame_measuring, text="Equivalent: None")
         self.px_to_mm_label.grid(row=3, columnspan=4, sticky="ew")
@@ -199,8 +196,7 @@ class LEDSimulator(Tk):
             self.lastx, self.lasty = event.x, event.y
 
         if self.mode.get() == "measuring" and not self.measuring:
-            self.referential['origin_x'] = event.x
-            self.referential['origin_y'] = event.y
+            self.referential.set_origin(event.x, event.y)
             self.measuring = True
         self.update_position(event)
 
@@ -209,18 +205,22 @@ class LEDSimulator(Tk):
         if self.mode.get() == "drawing":
             line_id = self.image_canvas.create_line(self.lastx, self.lasty, event.x, event.y, fill="red", width=1,
                                                     tags="drawing")
-            self.current_line.append([line_id, self.image_canvas.coords(line_id)])
+            self.current_drawing_strip.append([line_id, [self.lastx, self.lasty, event.x, event.y]])
             self.button_1_pressed(event)
 
         if self.mode.get() == "measuring":
-            if self.referential['last_id'] is not None:
-                self.clear_canvas(self.referential['last_id'])
-            line_id = self.image_canvas.create_line(self.referential['origin_x'], self.referential['origin_y'], event.x,
-                                                    event.y, fill="blue", dash=(10, 5), width=2, tags='measuring',
-                                                    arrow=BOTH)
-            self.referential['last_id'] = line_id
-            self.referential_line = [line_id, self.image_canvas.coords(line_id)]
-            self.update_referential(calculate_distance(self.image_canvas.coords(line_id)))
+            if self.referential.get_id_line_canvas() is not None:
+                self.clear_canvas(self.referential.get_id_line_canvas())
+            self.referential.update_referential(event.x, event.y, self.distance_mm_var.get())
+            self.referential.set_id_line_canvas(
+                self.image_canvas.create_line(self.referential.get_x_src(), self.referential.get_y_src(),
+                                              self.referential.get_x_dest(),
+                                              self.referential.get_y_dest(), fill="blue", dash=(10, 5), width=2,
+                                              tags='measuring',
+                                              arrow=BOTH))
+
+            # update the ref label
+            self.update_label_ref()
 
     def open_image(self):
         self.clear_canvas()
@@ -236,102 +236,57 @@ class LEDSimulator(Tk):
         self.cursor_pos_var.set(f"Position: ({event.x}, {event.y})")
         self.cursor_pos_label.update()
 
-    def update_referential(self, length):
-        self.distance_pixel_var.set(f"{length}")
-        self.distance_pixel_label.update()
-
-    def undo_last_draw(self):
-        if len(self.led_lines) != 0:
-            to_delete = self.led_lines.pop()
-            for id_line, _ in to_delete:
-                self.image_canvas.delete(id_line)
+    def undo_last_draw(self, id_obj):
+        self.image_canvas.delete(id_obj)
 
     def clear_canvas(self, id_line=None):
         if self.mode.get() == 'drawing':
+            for led_strip in self.led_strips:
+                [self.undo_last_draw(id_obj) for id_obj in led_strip.delete_object()]
 
-            while len(self.led_lines) != 0:
-                self.undo_last_draw()
-
-            for led in self.leds:
-                self.image_canvas.delete(led.id_led_canvas)
-
-            self.led_lines = []
-            self.leds = []
-            self.update_description()
+            self.led_strips = []
 
         if self.mode.get() == 'measuring':
-            if self.referential_line is not None:
-                self.image_canvas.delete(self.referential_line[0])
-            self.referential_line = None
-            self.label_measure.destroy()
+            if self.referential.exists():
+                self.image_canvas.delete(self.referential.remove_from_canvas())
+                self.remove_label_ref()
 
     def update_density_value(self):
         self.update_description()
 
     def button_1_released(self, event):
         if self.mode.get() == "drawing":
-            led_strip = self.current_line.copy()
-            self.led_lines.append(led_strip)
-            self.current_line = []
-            self.update_description()
+            self.led_strips.append(LEDStrip(self.current_drawing_strip.copy()))
+            self.current_drawing_strip = []
 
         if self.mode.get() == "measuring":
-            self.referential['dest_x'] = event.x
-            self.referential['dest_y'] = event.y
+            self.add_line(event)
             self.measuring = False
-            self.update_equivalence_px_to_mm()
 
-    def place_label_measure(self):
-        self.label_measure = Label(self.frame_image, text=f"{self.distance_mm_var.get()} mm")
-        self.label_measure.place(x=(self.referential_line[1][0] + self.referential_line[1][2]) / 2 - 30,
-                                 y=(self.referential_line[1][1] + self.referential_line[1][3]) / 2 + 10)
+    def update_ref_entry(self, entry_variable: int):
+        self.referential.set_dist_mm_src_to_dest(entry_variable)
 
-    def update_equivalence_px_to_mm(self):
-        self.px_to_mm_val = 1
-        if self.referential_line is not None:
-            self.px_to_mm_val = int(self.distance_mm_var.get()) / int(self.distance_pixel_var.get())
+    def remove_label_ref(self):
+        self.label_ref.destroy()
 
-            self.distance_px_between_leds = (1000 / int(self.led_density_var.get())) * (
-                        int(self.distance_pixel_var.get()) / int(self.distance_mm_var.get()))
+    def update_label_ref(self):
+        self.remove_label_ref()
+        self.label_ref = Label(self.frame_image, text=f"{self.referential.get_dist_mm_src_to_dest()} mm")
+        self.label_ref.place(x=(self.referential.get_x_src() + self.referential.get_x_dest()) / 2 - 30,
+                             y=(self.referential.get_y_src() + self.referential.get_y_dest()) / 2 + 10)
 
-        self.px_to_mm_label.config(text=f"Equivalent: {1} px = {self.px_to_mm_val:.2f} mm")
-        self.place_label_measure()
-
-        self.update_description()
+    def update_label_ref_callback(self, var, index, mode):
+        try:
+            var = self.distance_mm_var.get()
+        except TclError:
+            var = 0
+        self.referential.set_dist_mm_src_to_dest(var)
+        self.update_label_ref()
 
     def update_description(self):
         # TODO description not properly updated
-        total_length_px = 0
-        for strip in self.led_lines:
-            for strip_id, coords in strip:
-                total_length_px += calculate_distance(coords)
-        total_length_mm = int(total_length_px * self.px_to_mm_val)
-
-        number_leds = int(int(self.led_density_var.get()) * total_length_mm / 1000)
-
-        self.label_description.config(
-            text=f"Total length: {total_length_mm} mm / # of LEDs: {number_leds} / Distance (px) between LEDs: {int(self.distance_px_between_leds)}")
+        pass
 
     def generate_led_strip(self):
-        self.update_description()
-
-        coords = []
-
-        for strip in self.led_lines:
-            for line_id, line_coords in strip:
-                x1, y1, x2, y2 = int(line_coords[0]), int(line_coords[1]), int(line_coords[2]), int(line_coords[3])
-                path = generate_path_between_coordinates((x1, y1), (x2, y2))
-
-                print(f"Line: src: ({x1}, {y1}) -> dest: ({x2}, {y2}) / Path: {path}")
-                coords.extend(path)
-
-        dist_local = 0
-        for coord in coords:
-            dist_local += 1
-            if dist_local == int(self.distance_px_between_leds):
-                led = LED(coord)
-                x1, y1, x2, y2 = led.get_rect_coordinates()
-                led.id_led_canvas = self.image_canvas.create_rectangle(x1, y1, x2, y2, fill="pink")
-
-                self.leds.append(led)
-                dist_local = 0
+        # TODO
+        pass
