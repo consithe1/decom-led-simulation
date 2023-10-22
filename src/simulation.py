@@ -120,11 +120,11 @@ class LEDSimulator(Tk):
         self.frame_sequence = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
         Label(self.frame_sequence, text="Sequence Options").grid(row=0, sticky="ew")
         # cursor led size
-        self.led_size_px_val = IntVar()
-        self.led_size_px_val.set(2)
+        self.led_size_px_var = IntVar()
+        self.led_size_px_var.set(2)
         Scale(self.frame_sequence, label="LED Size (px)", command=self.update_all_variables_and_fields, from_=2, to=10,
               orient=HORIZONTAL,
-              resolution=1, variable=self.led_size_px_val).grid(row=1, sticky="ew")
+              resolution=1, variable=self.led_size_px_var).grid(row=1, sticky="ew")
         # sequence selection
         # run button
         self.frame_sequence.grid(row=1, column=2, sticky="news", padx=5)
@@ -172,12 +172,14 @@ class LEDSimulator(Tk):
             self.update_label_ref()
             self.update_label_ref_ratio()
 
-    def open_image(self):
+    def open_image(self, image_path=None):
         self.clear_canvas()
-        self.parameters.image_src_path = filedialog.askopenfilename(title="Open file",
-                                                                    filetypes=[('JPEG Files', '*.jpg'),
-                                                                               ('PNG Files', '*.png')])
-        image = Image.open(self.parameters.image_src_path)
+        if image_path is None:
+            self.parameters.image_src_path = filedialog.askopenfilename(title="Open file",
+                                                                        filetypes=[('JPEG Files', '*.jpg'),
+                                                                                   ('PNG Files', '*.png')])
+            image_path = self.parameters.image_src_path
+        image = Image.open(image_path)
         image_resized = image.resize((self.parameters.width, self.parameters.height))
 
         self.tk_image = ImageTk.PhotoImage(image_resized)
@@ -188,10 +190,14 @@ class LEDSimulator(Tk):
 
         dict_simu = FileUtils.read_simulation_from_file(
             filedialog.askopenfilename(title="Open Simulation File", filetypes=[('JSON Files', '*.json')]))
-        # create parameters from dict_simu
+
         self.parameters.create_from_json(dict_simu)
+        self.open_image(self.parameters.image_src_path)
+
+        # update vars
         self.draw_referential_line()
         self.draw_lines_canvas()
+        self.set_led_variables()
         self.update_all_variables_and_fields()
 
     def save_simulation_to_file(self):
@@ -254,7 +260,7 @@ class LEDSimulator(Tk):
             # calculate new led positions based on LED density and LED size
             self.parameters.led_strips[i].calculate_led_positions(
                 self.parameters.referential.get_ratio_px_to_mm(),
-                self.led_density_var.get(), self.led_size_px_val.get())
+                self.led_density_var.get(), self.led_size_px_var.get())
 
             # add leds to canvas
             for j in range(len(self.parameters.led_strips[i].get_list_leds())):
@@ -274,27 +280,39 @@ class LEDSimulator(Tk):
                 prev_strip_index, prev_led_index, prev_led_id = i, j, new_id_led
 
     def draw_referential_line(self):
-        self.parameters.referential.id_line_canvas = self.image_canvas.create_line(self.parameters.referential.get_x_src(),
-                                                                                   self.parameters.referential.get_y_src(),
-                                                                                   self.parameters.referential.get_x_dest(),
-                                                                                   self.parameters.referential.get_y_dest(),
-                                                                                   fill=self.parameters.referential.get_fill(),
-                                                                                   width=self.parameters.referential.get_width(),
-                                                                                   dash=self.parameters.referential.get_dash(),
-                                                                                   tags=self.parameters.referential.get_tags(),
-                                                                                   arrow=BOTH)
+        self.parameters.referential.id_line_canvas = self.image_canvas.create_line(
+            self.parameters.referential.get_x_src(),
+            self.parameters.referential.get_y_src(),
+            self.parameters.referential.get_x_dest(),
+            self.parameters.referential.get_y_dest(),
+            fill=self.parameters.referential.get_fill(),
+            width=self.parameters.referential.get_width(),
+            dash=self.parameters.referential.get_dash(),
+            tags=self.parameters.referential.get_tags(),
+            arrow=BOTH)
 
     def draw_lines_canvas(self):
         for i in range(len(self.parameters.led_strips)):
             for index, line_canvas in enumerate(self.parameters.led_strips[i].lines_canvas):
                 _, [x_src, y_src, x_dest, y_dest] = line_canvas
-                self.parameters.led_strips[i].lines_canvas[index][0] = self.image_canvas.create_line(x_src, y_src, x_dest, y_dest, fill="red", width=1, smooth=True)
+                # TODO change this to use parameters
+                self.parameters.led_strips[i].lines_canvas[index][0] = self.image_canvas.create_line(x_src, y_src,
+                                                                                                     x_dest, y_dest,
+                                                                                                     fill="red",
+                                                                                                     width=1,
+                                                                                                     smooth=True)
 
     """
     UPDATE FUNCTIONS
     """
 
+    def set_led_variables(self):
+        self.led_density_var.set(self.parameters.led_density)
+        self.led_size_px_var.set(self.parameters.led_size_px)
+
     def update_leds(self, new_value):
+        self.parameters.led_size_px = self.led_size_px_var.get()
+        self.parameters.led_density = self.led_density_var.get()
         self.generate_led_strips()
 
     def update_position(self, event=None):
@@ -344,8 +362,6 @@ class LEDSimulator(Tk):
         pass
 
     def update_all_variables_and_fields(self, var=None, index=None, mode=None):
-        # TODO call every update function
-
         # drawing or measuring
         self.update_mode()
         # update LEDs based on density and display size
