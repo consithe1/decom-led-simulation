@@ -36,7 +36,7 @@ class LEDStrip:
         self.length_px = None
         self.length_mm = None
         self.led_density = None
-        self.lines_canvas: list = lines
+        self.lines_canvas: list[list[int, list[int]]] = lines
         self.list_leds: list[LED] = []
 
     def calculate_line_mm(self, reference):

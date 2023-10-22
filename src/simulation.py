@@ -191,6 +191,7 @@ class LEDSimulator(Tk):
         # create parameters from dict_simu
         self.parameters.create_from_json(dict_simu)
         self.draw_referential_line()
+        self.draw_lines_canvas()
         self.update_all_variables_and_fields()
 
     def save_simulation_to_file(self):
@@ -282,6 +283,12 @@ class LEDSimulator(Tk):
                                                                                    dash=self.parameters.referential.get_dash(),
                                                                                    tags=self.parameters.referential.get_tags(),
                                                                                    arrow=BOTH)
+
+    def draw_lines_canvas(self):
+        for i in range(len(self.parameters.led_strips)):
+            for index, line_canvas in enumerate(self.parameters.led_strips[i].lines_canvas):
+                _, [x_src, y_src, x_dest, y_dest] = line_canvas
+                self.parameters.led_strips[i].lines_canvas[index][0] = self.image_canvas.create_line(x_src, y_src, x_dest, y_dest, fill="red", width=1, smooth=True)
 
     """
     UPDATE FUNCTIONS

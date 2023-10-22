@@ -91,7 +91,7 @@ class Referential:
     def from_json(self, dict_json):
         for field in dict_json.keys():
             if type(dict_json[field]) is list:
-                setattr(self, field, [item for item in dict_json[field].items()])
+                setattr(self, field, [item for item in dict_json[field]])
             else:
                 setattr(self, field, dict_json[field])
 
