@@ -1,13 +1,56 @@
 from tkinter import *
 from tkinter import filedialog
+import matplotlib.pyplot as plt
 
 from PIL import ImageTk, Image
 import math
+
+from src.rgb_leds.LED import LED
 
 
 def calculate_distance(coords):
     x1, y1, x2, y2 = coords
     return int(math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)))
+
+
+def generate_path_between_coordinates(src_coords, dest_coords):
+    x_src, y_src = src_coords
+    x_dest, y_dest = dest_coords
+    path = []
+
+    if x_dest - x_src < 0:
+        if y_dest - y_src < 0:
+            for x in range(x_src, x_dest, -1):
+                for y in range(y_src, y_dest, -1):
+                    path.append((x, y))
+        elif y_dest - y_src == 0:
+            for x in range(x_src, x_dest, -1):
+                path.append((x, y_src))
+        else:
+            for x in range(x_src, x_dest, -1):
+                for y in range(y_src, y_dest, 1):
+                    path.append((x, y))
+    elif x_dest - x_src == 0:
+        if y_dest - y_src < 0:
+            for y in range(y_src, y_dest, -1):
+                path.append((x_src, y))
+        elif y_dest - y_src > 0:
+            for y in range(y_src, y_dest, 1):
+                path.append((x_src, y))
+    else:
+        if y_dest - y_src < 0:
+            for x in range(x_src, x_dest, 1):
+                for y in range(y_src, y_dest, -1):
+                    path.append((x, y))
+        elif y_dest - y_src == 0:
+            for x in range(x_src, x_dest, 1):
+                path.append((x, y_src))
+        else:
+            for x in range(x_src, x_dest, 1):
+                for y in range(y_src, y_dest, 1):
+                    path.append((x, y))
+
+    return path
 
 
 class LEDSimulator(Tk):
@@ -17,8 +60,10 @@ class LEDSimulator(Tk):
         self.px_to_mm_val = 1
         self.tk_image = None
         self.current_line = []
-        self.led_strips = []
+        self.led_lines = []
         self.leds = []
+        self.previous_led_coords = None
+        self.distance_px_between_leds = 1
 
         self.image_file = None
         self.window_canvas = None
@@ -92,7 +137,8 @@ class LEDSimulator(Tk):
         self.distance_mm_entry = Entry(self.frame_measuring, textvariable=self.distance_mm_var)
         self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
         Label(self.frame_measuring, text="mm").grid(row=1, column=3, sticky='ew')
-        Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=2, sticky="ew", columnspan=4)
+        Button(self.frame_measuring, text="Update equivalence", command=self.update_equivalence_px_to_mm).grid(row=2, sticky="ew", columnspan=4)
+        Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=3, sticky="ew", columnspan=4)
         self.px_to_mm_label = Label(self.frame_measuring, text="Equivalent: None")
         self.px_to_mm_label.grid(row=3, columnspan=4, sticky="ew")
         self.frame_measuring.grid(row=1, column=0, sticky="news", padx=5)
@@ -109,7 +155,8 @@ class LEDSimulator(Tk):
                         command=self.update_density_value).grid(row=index + 2, column=0, sticky="w")
         Button(self.frame_drawing, text="Clear", command=self.clear_canvas).grid(row=2, column=1, sticky="ew")
         Button(self.frame_drawing, text="Undo", command=self.undo_last_draw).grid(row=3, column=1, sticky="ew")
-        Button(self.frame_drawing, text="Generate LED strip", command=self.generate_led_strip).grid(row=4, column=1, sticky="ew")
+        Button(self.frame_drawing, text="Generate LED strip", command=self.generate_led_strip).grid(row=4, column=1,
+                                                                                                    sticky="ew")
         Button(self.frame_drawing, text="Save LED strip").grid(row=5, column=1, sticky="ew")  # TODO: add command
 
         self.frame_drawing.grid(row=1, column=1, sticky="news", padx=5)
@@ -158,8 +205,9 @@ class LEDSimulator(Tk):
         self.update_position(event)
 
     def add_line(self, event):
+        # TODO treatement to avoid accumulation of points at the same place
         if self.mode.get() == "drawing":
-            line_id = self.image_canvas.create_line(self.lastx, self.lasty, event.x, event.y, fill="red", width=2,
+            line_id = self.image_canvas.create_line(self.lastx, self.lasty, event.x, event.y, fill="red", width=1,
                                                     tags="drawing")
             self.current_line.append([line_id, self.image_canvas.coords(line_id)])
             self.button_1_pressed(event)
@@ -193,17 +241,22 @@ class LEDSimulator(Tk):
         self.distance_pixel_label.update()
 
     def undo_last_draw(self):
-        if len(self.led_strips) != 0:
-            to_delete = self.led_strips.pop()
+        if len(self.led_lines) != 0:
+            to_delete = self.led_lines.pop()
             for id_line, _ in to_delete:
                 self.image_canvas.delete(id_line)
 
     def clear_canvas(self, id_line=None):
         if self.mode.get() == 'drawing':
 
-            while len(self.led_strips) != 0:
+            while len(self.led_lines) != 0:
                 self.undo_last_draw()
-            self.led_strips = []
+
+            for led in self.leds:
+                self.image_canvas.delete(led.id_led_canvas)
+
+            self.led_lines = []
+            self.leds = []
             self.update_description()
 
         if self.mode.get() == 'measuring':
@@ -218,7 +271,7 @@ class LEDSimulator(Tk):
     def button_1_released(self, event):
         if self.mode.get() == "drawing":
             led_strip = self.current_line.copy()
-            self.led_strips.append(led_strip)
+            self.led_lines.append(led_strip)
             self.current_line = []
             self.update_description()
 
@@ -226,33 +279,59 @@ class LEDSimulator(Tk):
             self.referential['dest_x'] = event.x
             self.referential['dest_y'] = event.y
             self.measuring = False
-            self.validate_equivalence_px_to_mm()
+            self.update_equivalence_px_to_mm()
 
     def place_label_measure(self):
         self.label_measure = Label(self.frame_image, text=f"{self.distance_mm_var.get()} mm")
         self.label_measure.place(x=(self.referential_line[1][0] + self.referential_line[1][2]) / 2 - 30,
                                  y=(self.referential_line[1][1] + self.referential_line[1][3]) / 2 + 10)
 
-    def validate_equivalence_px_to_mm(self):
+    def update_equivalence_px_to_mm(self):
         self.px_to_mm_val = 1
         if self.referential_line is not None:
             self.px_to_mm_val = int(self.distance_mm_var.get()) / int(self.distance_pixel_var.get())
+
+            self.distance_px_between_leds = (1000 / int(self.led_density_var.get())) * (
+                        int(self.distance_pixel_var.get()) / int(self.distance_mm_var.get()))
+
         self.px_to_mm_label.config(text=f"Equivalent: {1} px = {self.px_to_mm_val:.2f} mm")
         self.place_label_measure()
 
+        self.update_description()
+
     def update_description(self):
+        # TODO description not properly updated
         total_length_px = 0
-        for strip in self.led_strips:
+        for strip in self.led_lines:
             for strip_id, coords in strip:
                 total_length_px += calculate_distance(coords)
         total_length_mm = int(total_length_px * self.px_to_mm_val)
 
         number_leds = int(int(self.led_density_var.get()) * total_length_mm / 1000)
 
-        self.label_description.config(text=f"Total length: {total_length_mm} mm / # of LEDs: {number_leds}")
+        self.label_description.config(
+            text=f"Total length: {total_length_mm} mm / # of LEDs: {number_leds} / Distance (px) between LEDs: {int(self.distance_px_between_leds)}")
 
     def generate_led_strip(self):
         self.update_description()
 
-        # generate points on the led_strip lines
+        coords = []
 
+        for strip in self.led_lines:
+            for line_id, line_coords in strip:
+                x1, y1, x2, y2 = int(line_coords[0]), int(line_coords[1]), int(line_coords[2]), int(line_coords[3])
+                path = generate_path_between_coordinates((x1, y1), (x2, y2))
+
+                print(f"Line: src: ({x1}, {y1}) -> dest: ({x2}, {y2}) / Path: {path}")
+                coords.extend(path)
+
+        dist_local = 0
+        for coord in coords:
+            dist_local += 1
+            if dist_local == int(self.distance_px_between_leds):
+                led = LED(coord)
+                x1, y1, x2, y2 = led.get_rect_coordinates()
+                led.id_led_canvas = self.image_canvas.create_rectangle(x1, y1, x2, y2, fill="pink")
+
+                self.leds.append(led)
+                dist_local = 0

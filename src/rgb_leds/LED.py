@@ -7,6 +7,12 @@ class LED:
         self.input_voltage = None
         self.waterproof_level = None
 
-        self.color = None
+        self.color = "pink"
+        self.led_size = 8
+
+        self.id_led_canvas = None
 
         self.x, self.y = coordinates
+
+    def get_rect_coordinates(self):
+        return int(self.x - self.led_size/2), int(self.y - self.led_size/2), int(self.x + self.led_size/2), int(self.y + self.led_size/2)
