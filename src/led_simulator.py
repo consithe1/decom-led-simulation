@@ -4,52 +4,6 @@ from src.rgb_leds.referential import Referential
 from src.rgb_leds.LEDStrip import LEDStrip
 
 from PIL import ImageTk, Image
-import math
-
-
-def calculate_distance(coords):
-    x1, y1, x2, y2 = coords
-    return int(math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2)))
-
-
-def generate_path_between_coordinates(src_coords, dest_coords):
-    x_src, y_src = src_coords
-    x_dest, y_dest = dest_coords
-    path = []
-
-    if x_dest - x_src < 0:
-        if y_dest - y_src < 0:
-            for x in range(x_src, x_dest, -1):
-                for y in range(y_src, y_dest, -1):
-                    path.append((x, y))
-        elif y_dest - y_src == 0:
-            for x in range(x_src, x_dest, -1):
-                path.append((x, y_src))
-        else:
-            for x in range(x_src, x_dest, -1):
-                for y in range(y_src, y_dest, 1):
-                    path.append((x, y))
-    elif x_dest - x_src == 0:
-        if y_dest - y_src < 0:
-            for y in range(y_src, y_dest, -1):
-                path.append((x_src, y))
-        elif y_dest - y_src > 0:
-            for y in range(y_src, y_dest, 1):
-                path.append((x_src, y))
-    else:
-        if y_dest - y_src < 0:
-            for x in range(x_src, x_dest, 1):
-                for y in range(y_src, y_dest, -1):
-                    path.append((x, y))
-        elif y_dest - y_src == 0:
-            for x in range(x_src, x_dest, 1):
-                path.append((x, y_src))
-        else:
-            for x in range(x_src, x_dest, 1):
-                for y in range(y_src, y_dest, 1):
-                    path.append((x, y))
-
-    return path
 
 
 class LEDSimulator(Tk):
@@ -63,7 +17,7 @@ class LEDSimulator(Tk):
         self.tk_image = None
         self.current_drawing_strip = []
 
-        self.led_strips = []
+        self.led_strips: list[LEDStrip] = []
 
         self.image_file = None
         self.window_canvas = None
@@ -145,23 +99,26 @@ class LEDSimulator(Tk):
         Label(self.frame_drawing, text="LED Drawing").grid(row=0, sticky="ew", columnspan=2)
 
         self.led_densities = [30, 60, 144]
-        self.led_density_var = StringVar()
-        self.led_density_var.set(str(self.led_densities[0]))
-        for index, shape in enumerate(self.led_densities):
-            Radiobutton(self.frame_drawing, text=f"{shape} LEDs/m", variable=self.led_density_var, value=shape,
+        self.led_density_var = IntVar()
+        self.led_density_var.set(self.led_densities[0])
+        for index, d in enumerate(self.led_densities):
+            Radiobutton(self.frame_drawing, text=f"{d} LEDs/m", variable=self.led_density_var, value=d,
                         command=self.update_density_value).grid(row=index + 2, column=0, sticky="w")
         Button(self.frame_drawing, text="Clear", command=self.clear_canvas).grid(row=2, column=1, sticky="ew")
         Button(self.frame_drawing, text="Undo", command=self.undo_last_draw).grid(row=3, column=1, sticky="ew")
-        Button(self.frame_drawing, text="Generate LED strip", command=self.generate_led_strip).grid(row=4, column=1,
-                                                                                                    sticky="ew")
+        Button(self.frame_drawing, text="Generate LED strip", command=self.generate_led_strips).grid(row=4, column=1,
+                                                                                                     sticky="ew")
         Button(self.frame_drawing, text="Save LED strip").grid(row=5, column=1, sticky="ew")  # TODO: add command
 
         self.frame_drawing.grid(row=1, column=1, sticky="news", padx=5)
 
         # FRAME SEQUENCE TO RUN
         self.frame_sequence = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
-        Label(self.frame_sequence, text="Sequence Options").grid(row=1, column=2, sticky="ew")
+        Label(self.frame_sequence, text="Sequence Options").grid(row=0, sticky="ew")
         # cursor led size
+        self.led_size_px_val = IntVar()
+        self.led_size_px_val.set(2)
+        Scale(self.frame_sequence, label="LED Size (px)", command=self.update_leds, from_=2, to=10, orient=HORIZONTAL, resolution=1, variable=self.led_size_px_val).grid(row=1, sticky="ew")
         # sequence selection
         # run button
         self.frame_sequence.grid(row=1, column=2, sticky="news", padx=5)
@@ -178,6 +135,9 @@ class LEDSimulator(Tk):
         self.frame_options.grid(row=2, columnspan=1, sticky="news", padx=5, pady=5)
         self.update_mode()
 
+    def update_leds(self, new_value):
+        self.generate_led_strips()
+
     def update_mode(self):
         if self.mode.get() == "drawing":
             for child in self.frame_measuring.winfo_children():
@@ -191,21 +151,11 @@ class LEDSimulator(Tk):
             for child in self.frame_drawing.winfo_children():
                 child.configure(state='disable')
 
-    def button_1_pressed(self, event):
-        if self.mode.get() == "drawing":
-            print("Button-1 pressed")
-            self.last_x, self.last_y = event.x, event.y
-
-        if self.mode.get() == "measuring" and not self.measuring:
-            self.referential.set_origin(event.x, event.y)
-            self.measuring = True
-        self.update_position(event)
-
     def add_line(self, event):
         # TODO treatment to avoid accumulation of points at the same place
         if self.mode.get() == "drawing":
             line_id = self.image_canvas.create_line(self.last_x, self.last_y, event.x, event.y, fill="red", width=1,
-                                                    tags="drawing")
+                                                    tags="drawing", smooth=True)
             self.current_drawing_strip.append([line_id, [self.last_x, self.last_y, event.x, event.y]])
             self.button_1_pressed(event)
 
@@ -247,6 +197,9 @@ class LEDSimulator(Tk):
             ids_to_del = obj_to_del.delete_object()
             [self.remove_obj_from_canvas(id_del) for id_del in ids_to_del]
 
+    def remove_objs_from_canvas(self, list_ids: list[int]):
+        [self.remove_obj_from_canvas(id_obj) for id_obj in list_ids]
+
     def clear_canvas(self):
         if self.mode.get() == 'drawing':
             for led_strip in self.led_strips:
@@ -260,7 +213,7 @@ class LEDSimulator(Tk):
                 self.remove_label_ref()
 
     def update_density_value(self):
-        self.update_description()
+        self.update_leds(2)
 
     def draw_spline_line(self, coords):
         new_ids = []
@@ -274,15 +227,17 @@ class LEDSimulator(Tk):
             self.measuring = False
 
         elif self.mode.get() == "drawing":
-            led_strip = LEDStrip(self.current_drawing_strip.copy())
-
-            # replace lines drawn on canvas by spline values and first get old lines ids
-            # led_strip.generate_spline()
-            # [self.clear_canvas(id_obj) for id_obj in led_strip.delete_object()]
-            # led_strip.add_lines(self.draw_spline_line(led_strip.get_spline_coordinates()))
-
-            self.led_strips.append(led_strip)
+            self.led_strips.append(LEDStrip(self.current_drawing_strip.copy()))
             self.current_drawing_strip = []
+
+    def button_1_pressed(self, event):
+        if self.mode.get() == "drawing":
+            self.last_x, self.last_y = event.x, event.y
+
+        elif self.mode.get() == "measuring" and not self.measuring:
+            self.referential.set_origin(event.x, event.y)
+            self.measuring = True
+        self.update_position(event)
 
     def remove_label_ref(self):
         self.label_ref.destroy()
@@ -309,6 +264,34 @@ class LEDSimulator(Tk):
         # TODO description not properly updated
         pass
 
-    def generate_led_strip(self):
-        # TODO
+    def update_all_variables_and_fields(self):
+        # TODO call every update function
         pass
+
+    def generate_led_strips(self):
+
+        prev_strip_index, prev_led_index, prev_led_id = -1, -1, None
+
+        for i in range(len(self.led_strips)):
+            # remove previous leds from canvas, LEDStrip list
+            self.remove_objs_from_canvas(self.led_strips[i].remove_leds())
+            # calculate new led positions based on LED density and LED size
+            self.led_strips[i].calculate_led_positions(self.referential.get_ratio_px_to_mm(), self.led_density_var.get(), self.led_size_px_val.get())
+
+            # add leds to canvas
+            for j in range(len(self.led_strips[i].get_list_leds())):
+                # calculate rectangle object associated to LED
+                # depends on the LED density and the LED size in px
+                x0, y0, x1, y1 = self.led_strips[i].get_list_leds()[j].get_rect_coordinates()
+                # draw the LED rectangles on canvas
+                new_id_led = self.image_canvas.create_rectangle(x0, y0, x1, y1, fill="pink")
+
+                # exchange information between LEDs and strips
+                self.led_strips[i].add_id_canvas_to_led(j, new_id_led)
+                if prev_led_id is not None:
+                    self.led_strips[i].add_prev_id_canvas_to_led(j, prev_led_id)
+                    self.led_strips[prev_strip_index].add_next_id_canvas_to_led(prev_led_index, new_id_led)
+
+                prev_strip_index, prev_led_index, prev_led_id = i, j, new_id_led
+
+            print(f"Number of LEDs in this strip: {self.led_strips[i].calculate_number_leds()}")
