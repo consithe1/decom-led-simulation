@@ -1,5 +1,5 @@
 import math
-from src.rgb_leds.LED import LED
+from src.rgb_leds.led import LED
 
 
 def generate_path_between_coordinates_v2(x_src, y_src, x_dest, y_dest):
@@ -30,11 +30,13 @@ def calculate_line_length(x_src, y_src, x_dest, y_dest):
 
 class LEDStrip:
 
-    def __init__(self, lines):
+    def __init__(self, lines=None):
+        if lines is None:
+            lines = []
         self.length_px = None
         self.length_mm = None
         self.led_density = None
-        self.lines_canvas = lines
+        self.lines_canvas: list = lines
         self.list_leds: list[LED] = []
 
     def calculate_line_mm(self, reference):
@@ -109,3 +111,31 @@ class LEDStrip:
                 self.list_leds.append(led)
 
             travel_distance += 1
+
+    def to_json(self):
+        dict_json = {}
+        for field in vars(self).keys():
+            if field in ["list_leds"]:
+                if type(getattr(self, field)) is list:
+                    elem = [field_item.to_json() for field_item in getattr(self, field)]
+                else:
+                    elem = getattr(self, field).to_json()
+                dict_json[field] = elem
+            else:
+                dict_json[field] = getattr(self, field)
+        return dict_json
+
+    def from_json(self, dict_json):
+        for field in dict_json.keys():
+            if field == "lines_canvas":
+                self.lines_canvas = [line_canvas for line_canvas in dict_json[field]]
+
+            elif field == "list_leds":
+                for led_json in dict_json[field]:
+                    led = LED()
+                    led.from_json(led_json)
+                    self.list_leds.append(led)
+            else:
+                setattr(self, field, dict_json[field])
+
+        print("LED strip:", vars(self))

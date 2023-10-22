@@ -9,9 +9,15 @@ class Referential:
         self.x_dest = None
         self.y_dest = None
 
-        self.dist_px_src_to_dest = None
-        self.dist_mm_src_to_dest = None
-        self.ratio_px_to_mm = None
+        self.fill = "blue"
+        self.dash = (10, 5)
+        self.width = 2
+        self.tags = "measuring"
+        self.arrow = None
+
+        self.dist_px_src_to_dest = 1000
+        self.dist_mm_src_to_dest = 1000
+        self.ratio_px_to_mm = 1
 
         self.id_line_canvas = None
 
@@ -81,3 +87,31 @@ class Referential:
         to_delete_id_line = self.id_line_canvas
         self.set_id_line_canvas(None)
         return to_delete_id_line
+
+    def from_json(self, dict_json):
+        for field in dict_json.keys():
+            if type(dict_json[field]) is list:
+                setattr(self, field, [item for item in dict_json[field].items()])
+            else:
+                setattr(self, field, dict_json[field])
+
+    def to_json(self):
+        dict_json = {}
+        for field in vars(self).keys():
+            dict_json[field] = getattr(self, field)
+        return dict_json
+
+    def get_fill(self):
+        return self.fill
+
+    def get_dash(self):
+        return self.dash
+
+    def get_width(self):
+        return self.width
+
+    def get_tags(self):
+        return self.tags
+
+    def get_arrow(self):
+        return self.arrow
