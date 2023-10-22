@@ -63,7 +63,7 @@ class LEDSimulator(Tk):
         self.tk_image = None
         self.current_drawing_strip = []
 
-        self.led_strips: list[LEDStrip] = []
+        self.led_strips = []
 
         self.image_file = None
         self.window_canvas = None
@@ -193,6 +193,7 @@ class LEDSimulator(Tk):
 
     def button_1_pressed(self, event):
         if self.mode.get() == "drawing":
+            print("Button-1 pressed")
             self.last_x, self.last_y = event.x, event.y
 
         if self.mode.get() == "measuring" and not self.measuring:
@@ -210,7 +211,7 @@ class LEDSimulator(Tk):
 
         if self.mode.get() == "measuring":
             if self.referential.get_id_line_canvas() is not None:
-                self.clear_canvas(self.referential.get_id_line_canvas())
+                self.remove_obj_from_canvas(self.referential.get_id_line_canvas())
             self.referential.update_referential(event.x, event.y, self.distance_mm_var.get())
             self.referential.set_id_line_canvas(
                 self.image_canvas.create_line(self.referential.get_x_src(), self.referential.get_y_src(),
@@ -237,17 +238,23 @@ class LEDSimulator(Tk):
         self.cursor_pos_var.set(f"Position: ({event.x}, {event.y})")
         self.cursor_pos_label.update()
 
-    def undo_last_draw(self, id_obj):
+    def remove_obj_from_canvas(self, id_obj):
         self.image_canvas.delete(id_obj)
 
-    def clear_canvas(self, id_line=None):
+    def undo_last_draw(self):
+        if len(self.led_strips) != 0:
+            obj_to_del = self.led_strips.pop()
+            ids_to_del = obj_to_del.delete_object()
+            [self.remove_obj_from_canvas(id_del) for id_del in ids_to_del]
+
+    def clear_canvas(self):
         if self.mode.get() == 'drawing':
             for led_strip in self.led_strips:
-                [self.undo_last_draw(id_obj) for id_obj in led_strip.delete_object()]
+                [self.remove_obj_from_canvas(id_obj) for id_obj in led_strip.delete_object()]
 
             self.led_strips = []
 
-        if self.mode.get() == 'measuring':
+        elif self.mode.get() == 'measuring':
             if self.referential.exists():
                 self.image_canvas.delete(self.referential.remove_from_canvas())
                 self.remove_label_ref()
@@ -255,14 +262,27 @@ class LEDSimulator(Tk):
     def update_density_value(self):
         self.update_description()
 
-    def button_1_released(self, event):
-        if self.mode.get() == "drawing":
-            self.led_strips.append(LEDStrip(self.current_drawing_strip.copy()))
-            self.current_drawing_strip = []
+    def draw_spline_line(self, coords):
+        new_ids = []
+        for x1, y1, x2, y2 in coords:
+            new_ids.append([self.image_canvas.create_line(x1, y1, x2, y2, fill="green", width=2), [x1, y1, x2, y2]])
+        return new_ids
 
+    def button_1_released(self, event):
+        self.add_line(event)
         if self.mode.get() == "measuring":
-            self.add_line(event)
             self.measuring = False
+
+        elif self.mode.get() == "drawing":
+            led_strip = LEDStrip(self.current_drawing_strip.copy())
+
+            # replace lines drawn on canvas by spline values and first get old lines ids
+            # led_strip.generate_spline()
+            # [self.clear_canvas(id_obj) for id_obj in led_strip.delete_object()]
+            # led_strip.add_lines(self.draw_spline_line(led_strip.get_spline_coordinates()))
+
+            self.led_strips.append(led_strip)
+            self.current_drawing_strip = []
 
     def remove_label_ref(self):
         self.label_ref.destroy()
