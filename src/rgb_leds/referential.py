@@ -40,6 +40,9 @@ class Referential:
     def set_ratio_px_to_mm(self):
         self.ratio_px_to_mm = self.dist_mm_src_to_dest / self.dist_px_src_to_dest
 
+    def get_ratio_px_to_mm(self):
+        return self.ratio_px_to_mm
+
     def set_dist_mm_src_to_dest(self, dist_mm_input):
         self.dist_mm_src_to_dest = dist_mm_input
 

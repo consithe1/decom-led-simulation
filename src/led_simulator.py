@@ -122,9 +122,9 @@ class LEDSimulator(Tk):
 
         self.frame_mode.grid(row=0, columnspan=4, sticky="news")
 
-        # FRAME MEASURING
+        # FRAME REFERENTIAL
         self.frame_measuring = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
-        Label(self.frame_measuring, text="Dimensions").grid(row=0, columnspan=3, sticky='ew')
+        Label(self.frame_measuring, text="Referential").grid(row=0, columnspan=3, sticky='ew')
         self.distance_pixel_var = StringVar()
         self.distance_pixel_var.set(str(0))
         self.distance_pixel_label = Label(self.frame_measuring, textvariable=self.distance_pixel_var)
@@ -221,6 +221,7 @@ class LEDSimulator(Tk):
 
             # update the ref label
             self.update_label_ref()
+            self.update_label_ref_ratio()
 
     def open_image(self):
         self.clear_canvas()
@@ -263,9 +264,6 @@ class LEDSimulator(Tk):
             self.add_line(event)
             self.measuring = False
 
-    def update_ref_entry(self, entry_variable: int):
-        self.referential.set_dist_mm_src_to_dest(entry_variable)
-
     def remove_label_ref(self):
         self.label_ref.destroy()
 
@@ -275,12 +273,16 @@ class LEDSimulator(Tk):
         self.label_ref.place(x=(self.referential.get_x_src() + self.referential.get_x_dest()) / 2 - 30,
                              y=(self.referential.get_y_src() + self.referential.get_y_dest()) / 2 + 10)
 
+    def update_label_ref_ratio(self):
+        self.px_to_mm_label.config(text=f"1 px = {self.referential.get_ratio_px_to_mm()} mm")
+
     def update_label_ref_callback(self, var, index, mode):
         try:
             var = self.distance_mm_var.get()
         except TclError:
             var = 0
         self.referential.set_dist_mm_src_to_dest(var)
+        self.update_label_ref_ratio()
         self.update_label_ref()
 
     def update_description(self):
