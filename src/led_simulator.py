@@ -6,8 +6,6 @@ from src.rgb_leds.LEDStrip import LEDStrip
 from PIL import ImageTk, Image
 import math
 
-from src.rgb_leds.LED import LED
-
 
 def calculate_distance(coords):
     x1, y1, x2, y2 = coords
@@ -58,6 +56,8 @@ class LEDSimulator(Tk):
     def __init__(self):
         super().__init__()
 
+        self.last_x = None
+        self.last_y = None
         self.referential = Referential()
 
         self.tk_image = None
@@ -90,7 +90,7 @@ class LEDSimulator(Tk):
         # FRAME DESCRIPTION
         self.frame_description = Frame(self, bg="cyan", highlightbackground="black", highlightthickness=1)
         self.frame_description.columnconfigure(0, weight=1)
-        self.label_description = Label(self.frame_description, text="Description du projet")
+        self.label_description = Label(self.frame_description, text="Project description")
         self.label_description.pack(expand=True, fill=BOTH)
 
         self.frame_description.grid(sticky="nsew", padx=5, pady=5)
@@ -193,7 +193,7 @@ class LEDSimulator(Tk):
 
     def button_1_pressed(self, event):
         if self.mode.get() == "drawing":
-            self.lastx, self.lasty = event.x, event.y
+            self.last_x, self.last_y = event.x, event.y
 
         if self.mode.get() == "measuring" and not self.measuring:
             self.referential.set_origin(event.x, event.y)
@@ -201,11 +201,11 @@ class LEDSimulator(Tk):
         self.update_position(event)
 
     def add_line(self, event):
-        # TODO treatement to avoid accumulation of points at the same place
+        # TODO treatment to avoid accumulation of points at the same place
         if self.mode.get() == "drawing":
-            line_id = self.image_canvas.create_line(self.lastx, self.lasty, event.x, event.y, fill="red", width=1,
+            line_id = self.image_canvas.create_line(self.last_x, self.last_y, event.x, event.y, fill="red", width=1,
                                                     tags="drawing")
-            self.current_drawing_strip.append([line_id, [self.lastx, self.lasty, event.x, event.y]])
+            self.current_drawing_strip.append([line_id, [self.last_x, self.last_y, event.x, event.y]])
             self.button_1_pressed(event)
 
         if self.mode.get() == "measuring":
