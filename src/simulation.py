@@ -4,12 +4,13 @@ from src.rgb_leds.led_strip import LEDStrip
 from src.utils.parameters import Parameters
 from src.utils.constants import *
 from src.utils.file_utils import FileUtils
-
 from PIL import ImageTk, Image
+import logging
 
 
 class LEDSimulator(Tk):
     def __init__(self):
+        logging.debug("Creating main frame")
         super().__init__()
 
         self.last_x = None
@@ -35,6 +36,7 @@ class LEDSimulator(Tk):
         """
         MENU BAR
         """
+        logging.debug("Creating menu bar")
         self.menu_bar = Menu(self)
         self.config(menu=self.menu_bar)
         self.menu_files = Menu(self.menu_bar, tearoff=0)
@@ -52,6 +54,7 @@ class LEDSimulator(Tk):
         self.frame_description.grid(sticky="nsew", padx=5, pady=5)
 
         # FRAME IMAGE/CANVAS
+        logging.debug("Creating drawing canvas")
         self.frame_image = Frame(self, bg="lavender")
 
         self.image_canvas = Canvas(self.frame_image, width=self.parameters.width,
@@ -66,6 +69,7 @@ class LEDSimulator(Tk):
                                text=f"{self.parameters.referential.get_dist_mm_src_to_dest()} mm")
 
         # FRAME OPTIONS
+        logging.debug("Creating Options frame")
         self.frame_options = Frame(self, bg="forestgreen")
 
         # FRAME MODE
@@ -172,26 +176,31 @@ class LEDSimulator(Tk):
             self.update_label_ref()
             self.update_label_ref_ratio()
 
-    def open_image(self, image_path=None):
-        self.clear_canvas()
-        if image_path is None:
-            self.parameters.image_src_path = filedialog.askopenfilename(title="Open file",
-                                                                        filetypes=[('JPEG Files', '*.jpg'),
-                                                                                   ('PNG Files', '*.png')])
-            image_path = self.parameters.image_src_path
-        image = Image.open(image_path)
-        image_resized = image.resize((self.parameters.width, self.parameters.height))
+    def open_image_with_ask_dialog(self):
+        self.parameters.image_src_path = filedialog.askopenfilename(title="Open file",
+                                                                    filetypes=[('JPEG Files', '*.jpg'),
+                                                                               ('PNG Files', '*.png')])
+        self.open_image(self.parameters.image_src_path)
 
-        self.tk_image = ImageTk.PhotoImage(image_resized)
-        self.image_canvas.create_image(0, 0, image=self.tk_image, anchor='nw')
+    def open_image(self, image_path=None):
+        logging.debug(f"Opening image file at {image_path}")
+        self.clear_canvas()
+        if image_path is not None:
+            image = Image.open(image_path)
+            image_resized = image.resize((self.parameters.width, self.parameters.height))
+
+            self.tk_image = ImageTk.PhotoImage(image_resized)
+            self.image_canvas.create_image(0, 0, image=self.tk_image, anchor='nw')
 
     def open_existing_simulation(self):
-        self.clear_canvas()
-
+        # TODO if new simu is opened while another one has been opened, LEDs are overlapping
         dict_simu = FileUtils.read_simulation_from_file(
-            filedialog.askopenfilename(title="Open Simulation File", filetypes=[('JSON Files', '*.json')]))
+            filedialog.askopenfilename(title="Open Simulation File", filetypes=[('Decom Files', '*.decom')]))
 
+        self.clear_all_canvas()
         self.parameters.create_from_json(dict_simu)
+
+        logging.debug(f"Opening simulation at {self.parameters.simu_dest_path}")
         self.open_image(self.parameters.image_src_path)
 
         # update vars
@@ -202,46 +211,59 @@ class LEDSimulator(Tk):
 
     def save_simulation_to_file(self):
         # file format : .decom
-        self.parameters.simu_dest_path = filedialog.asksaveasfilename(initialfile='simulation-1.json',
-                                                                      defaultextension=".json",
-                                                                      filetypes=[("All Files", "*.*"),
-                                                                                 ("Json Documents", "*.json")])
+        self.parameters.simu_dest_path = filedialog.asksaveasfilename(initialfile='simulation-1.decom',
+                                                                      defaultextension="*.decom",
+                                                                      filetypes=[("Decom Files", "*.decom")])
         FileUtils.save_simulation_to_file(self.parameters)
+        logging.debug(f"Saving simulation to {self.parameters.simu_dest_path}")
 
     def remove_obj_from_canvas(self, id_obj):
+        logging.debug("Removing object from canvas")
         self.image_canvas.delete(id_obj)
 
     def undo_last_draw(self):
+        logging.debug("Undo last led strip drawn")
         if len(self.parameters.led_strips) != 0:
             obj_to_del = self.parameters.led_strips.pop()
             ids_to_del = obj_to_del.delete_object()
             [self.remove_obj_from_canvas(id_del) for id_del in ids_to_del]
 
     def remove_objs_from_canvas(self, list_ids: list[int]):
+        logging.debug("Removing all objects given from canvas")
         [self.remove_obj_from_canvas(id_obj) for id_obj in list_ids]
 
-    def clear_canvas(self):
-        if self.mode.get() == 'drawing':
+    def clear_canvas(self, option=DRAWING):
+        logging.debug("Clearing canvas based on option given")
+        if option == DRAWING:
             for led_strip in self.parameters.led_strips:
                 [self.remove_obj_from_canvas(id_obj) for id_obj in led_strip.delete_object()]
 
             self.parameters.led_strips = []
 
-        elif self.mode.get() == 'measuring':
+        elif option == MEASURING:
             if self.parameters.referential.exists():
                 self.image_canvas.delete(self.parameters.referential.remove_from_canvas())
                 self.remove_label_ref()
 
+    def clear_all_canvas(self):
+        logging.debug("Clearing canvas from referential line and led strips")
+        self.clear_canvas(DRAWING)
+        self.clear_canvas(MEASURING)
+
     def button_1_released(self, event):
+        logging.debug("Button-1 released")
         self.add_line(event)
         if self.mode.get() == MEASURING:
+            logging.debug(f"Adding referential line between {self.parameters.referential.get_x_src(), self.parameters.referential.get_y_src()} and {self.parameters.referential.get_x_dest(), self.parameters.referential.get_y_dest()}")
             self.measuring = False
 
         elif self.mode.get() == DRAWING:
+            logging.debug("Adding LED strip line")
             self.parameters.led_strips.append(LEDStrip(self.current_drawing_strip.copy()))
             self.current_drawing_strip = []
 
     def button_1_pressed(self, event):
+        logging.debug("Button-1 pressed")
         if self.mode.get() == DRAWING:
             self.last_x, self.last_y = event.x, event.y
 
@@ -251,7 +273,7 @@ class LEDSimulator(Tk):
         self.update_position(event)
 
     def generate_led_strips(self):
-
+        logging.debug("Generating LED strips")
         prev_strip_index, prev_led_index, prev_led_id = -1, -1, None
 
         for i in range(len(self.parameters.led_strips)):
@@ -280,6 +302,7 @@ class LEDSimulator(Tk):
                 prev_strip_index, prev_led_index, prev_led_id = i, j, new_id_led
 
     def draw_referential_line(self):
+        logging.debug("Drawing referential line")
         self.parameters.referential.id_line_canvas = self.image_canvas.create_line(
             self.parameters.referential.get_x_src(),
             self.parameters.referential.get_y_src(),
@@ -292,6 +315,7 @@ class LEDSimulator(Tk):
             arrow=BOTH)
 
     def draw_lines_canvas(self):
+        logging.debug("Drawing led lines")
         for i in range(len(self.parameters.led_strips)):
             for index, line_canvas in enumerate(self.parameters.led_strips[i].lines_canvas):
                 _, [x_src, y_src, x_dest, y_dest] = line_canvas
@@ -307,10 +331,12 @@ class LEDSimulator(Tk):
     """
 
     def set_led_variables(self):
+        logging.debug("Setting LED variables on application window")
         self.led_density_var.set(self.parameters.led_density)
         self.led_size_px_var.set(self.parameters.led_size_px)
 
     def update_leds(self, new_value):
+        logging.debug("Updating LED strips")
         self.parameters.led_size_px = self.led_size_px_var.get()
         self.parameters.led_density = self.led_density_var.get()
         self.generate_led_strips()
@@ -320,6 +346,7 @@ class LEDSimulator(Tk):
         self.cursor_pos_label.update()
 
     def update_mode(self):
+        logging.debug("Updating drawing mode")
         if self.mode.get() == DRAWING:
             for child in self.frame_measuring.winfo_children():
                 child.configure(state='disable')
@@ -335,9 +362,11 @@ class LEDSimulator(Tk):
             self.parameters.app_mode = MEASURING
 
     def remove_label_ref(self):
+        logging.debug("Remove referential line label")
         self.label_ref.destroy()
 
     def update_label_ref(self):
+        logging.debug("Updating referential line label")
         self.remove_label_ref()
         self.label_ref = Label(self.frame_image,
                                text=f"{self.parameters.referential.get_dist_mm_src_to_dest()} mm")
@@ -346,9 +375,11 @@ class LEDSimulator(Tk):
             y=(self.parameters.referential.get_y_src() + self.parameters.referential.get_y_dest()) / 2 + 10)
 
     def update_label_ref_ratio(self):
+        logging.debug("Updating referential equivalence label")
         self.px_to_mm_label.config(text=f"1 px = {self.parameters.referential.get_ratio_px_to_mm()} mm")
 
     def update_label_ref_callback(self, var, index, mode):
+        logging.debug("Updating referential labels")
         try:
             var = self.distance_mm_var.get()
         except TclError:
@@ -358,10 +389,12 @@ class LEDSimulator(Tk):
         self.update_label_ref()
 
     def update_description(self):
+        logging.debug("Updating description")
         # TODO description not properly updated
         pass
 
     def update_all_variables_and_fields(self, var=None, index=None, mode=None):
+        logging.debug("Updating all variables")
         # drawing or measuring
         self.update_mode()
         # update LEDs based on density and display size
