@@ -1,47 +1,36 @@
-class LED:
+class LED(dict):
 
-    LED_ID = 0
+    def __init__(self, x=None, y=None, color='pink', led_size_px=None, id_led_canvas=None, id_strip=None, led_id=None,
+                 led_id_from_strip=None, id_previous_led=None, id_next_led=None, manufacturer=None,
+                 ic_per_led_active=None, ic_per_led_idle=None, input_voltage=None, waterproof_level=None,
+                 led_width_mm=None, led_height_mm=None):
+        super().__init__()
+        self["manufacturer"] = manufacturer
+        self["ic_per_led_active"] = ic_per_led_active
+        self["ic_per_led_idle"] = ic_per_led_idle
+        self["input_voltage"] = input_voltage
+        self["waterproof_level"] = waterproof_level
+        self["led_width_mm"] = led_width_mm
+        self["led_height_mm"] = led_height_mm
 
-    def __init__(self, coordinates=None, led_size_px=2, strip_id=0, led_id_from_strip=0):
-        if coordinates is None:
-            coordinates = [0, 0]
-        self.manufacturer = "Normand"
-        self.ic_per_led_active = None
-        self.ic_per_led_idle = None
-        self.input_voltage = 12
-        self.waterproof_level = "IP67"
+        self["color"] = color
+        self["led_size_px"] = led_size_px
 
-        self.color = "pink"
-        self.led_size_px = led_size_px
-        self.led_width_mm = 5.4
-        self.led_height_mm = 5
+        self["id_led_canvas"] = id_led_canvas
 
-        self.id_led_canvas = None
+        self["id_strip"] = id_strip
+        self["led_id_from_strip"] = led_id_from_strip
 
-        self.id_strip = strip_id
+        self["led_id"] = led_id
+        self["id_previous_led"] = id_previous_led
+        self["id_next_led"] = id_next_led
 
-        self.led_id = f"{self.id_strip}-{led_id_from_strip}"
-        self.id_previous_led = None
-        self.id_next_led = None
-
-        self.x = coordinates[0]
-        self.y = coordinates[1]
-
-    def set_id_led_canvas(self, new_id):
-        self.id_led_canvas = new_id
-
-    def set_id_previous_led(self, pre):
-        self.id_previous_led = pre
-
-    def set_id_next_led(self, next_id):
-        self.id_next_led = next_id
-
-    def get_id_led(self):
-        return self.led_id
+        self.x = x
+        self.y = y
 
     def get_rect_coordinates(self):
-        return int(self.x - self.led_size_px / 2), int(self.y - self.led_size_px / 2), int(
-            self.x + self.led_size_px / 2), int(self.y + self.led_size_px / 2)
+        return int(self.x - self["led_size_px"] / 2), int(self.y - self["led_size_px"] / 2), int(
+            self.x + self["led_size_px"] / 2), int(self.y + self["led_size_px"] / 2)
 
     def to_json(self):
         dict_json = {}
@@ -49,6 +38,12 @@ class LED:
             dict_json[field] = getattr(self, field)
         return dict_json
 
-    def from_json(self, dict_json: dict):
-        for field in dict_json.keys():
-            setattr(self, field, dict_json[field])
+    @staticmethod
+    def from_json(dict_json):
+        led = LED()
+        for key in dict_json.keys():
+            led[key] = dict_json[key]
+        return led
+
+    def set(self, key, val):
+        self[key] = val
