@@ -152,7 +152,8 @@ class LEDSimulator(Tk):
     def open_image_with_ask_dialog(self):
         self.parameters["image_src_path"] = filedialog.askopenfilename(title="Open file",
                                                                        filetypes=[('JPEG Files', '*.jpg'),
-                                                                                  ('PNG Files', '*.png')])
+                                                                                  ('PNG Files', '*.png')],
+                                                                       defaultextension='.jpg', initialdir='assets/')
         self.open_image(self.parameters["image_src_path"])
 
     def open_image(self, image_path=None):
@@ -167,7 +168,10 @@ class LEDSimulator(Tk):
     def open_existing_simulation(self):
         # TODO if new simu is opened while another one has been opened, LEDs are overlapping
         dict_simu = FileUtils.read_simulation_from_file(
-            filedialog.askopenfilename(title="Open Simulation File", filetypes=[('Decom Files', '*.decom')]))
+            filedialog.askopenfilename(
+                title="Open Simulation File", filetypes=[('Decom Files', '*.decom')],
+                defaultextension='.decom', initialdir='simulations/')
+        )
 
         # clear canvas from previous drawn stuff
         self.clear_all_canvas()
@@ -186,12 +190,12 @@ class LEDSimulator(Tk):
         self.import_led_strips()
         logging.debug("LED Strips: OK")
 
-
     def save_simulation_to_file(self):
         # file format : .decom
-        self.parameters["simu_dest_path"] = filedialog.asksaveasfilename(initialfile='simulation-1.decom',
-                                                                         defaultextension="*.decom",
-                                                                         filetypes=[("Decom Files", "*.decom")])
+        self.parameters["simu_dest_path"] = filedialog.asksaveasfilename(initialfile='simulation-1',
+                                                                         defaultextension=".decom",
+                                                                         filetypes=[("Decom Files", "*.decom")],
+                                                                         initialdir='simulations/')
         FileUtils.save_simulation_to_file(self.parameters)
         logging.debug(f'Saving simulation to {self.parameters["simu_dest_path"]}')
 
@@ -296,7 +300,8 @@ class LEDSimulator(Tk):
 
                 prev_strip_index, prev_led_index, prev_led_id = i, j, id_led
 
-    def draw_line(self, x_src=None, y_src=None, x_dest=None, y_dest=None, fill=None, width=1, tags=DRAWING, dash=None, arrow=None, smooth=False) -> int:
+    def draw_line(self, x_src=None, y_src=None, x_dest=None, y_dest=None, fill=None, width=1, tags=DRAWING, dash=None,
+                  arrow=None, smooth=False) -> int:
         logging.debug(
             f"Drawing line between: {x_src, y_src}, and {x_dest, y_dest} / fill={fill} / width={width} px / tags={tags} / dash={dash} / arrow={arrow}")
         return self.image_canvas.create_line(
@@ -358,7 +363,8 @@ class LEDSimulator(Tk):
                 logging.debug(f"LED Strip line: {led_strip_line}")
                 # draw lines
                 _, [x_src, y_src, x_dest, y_dest] = led_strip_line
-                id_line = self.draw_line(x_src, y_src, x_dest, y_dest, led_strip.get("fill"), led_strip.get("width"), DRAWING)
+                id_line = self.draw_line(x_src, y_src, x_dest, y_dest, led_strip.get("fill"), led_strip.get("width"),
+                                         DRAWING)
                 self.parameters["led_strips"][index_led_strip]["lines_canvas"][index_line][0] = id_line
 
     """
