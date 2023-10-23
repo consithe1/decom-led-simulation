@@ -1,6 +1,6 @@
 class LED(dict):
 
-    def __init__(self, x=None, y=None, color='pink', led_size_px=None, id_led_canvas=None, id_strip=None, led_id=None,
+    def __init__(self, x=None, y=None, color='pink', led_size_px=2, id_led_canvas=None, id_strip=None, led_id=None,
                  led_id_from_strip=None, id_previous_led=None, id_next_led=None, manufacturer=None,
                  ic_per_led_active=None, ic_per_led_idle=None, input_voltage=None, waterproof_level=None,
                  led_width_mm=None, led_height_mm=None):
@@ -25,12 +25,12 @@ class LED(dict):
         self["id_previous_led"] = id_previous_led
         self["id_next_led"] = id_next_led
 
-        self.x = x
-        self.y = y
+        self["x"] = x
+        self["y"] = y
 
     def get_rect_coordinates(self):
-        return int(self.x - self["led_size_px"] / 2), int(self.y - self["led_size_px"] / 2), int(
-            self.x + self["led_size_px"] / 2), int(self.y + self["led_size_px"] / 2)
+        return int(self["x"] - self["led_size_px"] / 2), int(self["y"] - self["led_size_px"] / 2), int(
+            self["x"] + self["led_size_px"] / 2), int(self["y"] + self["led_size_px"] / 2)
 
     def to_json(self):
         dict_json = {}

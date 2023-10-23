@@ -133,7 +133,7 @@ class LEDStrip(dict):
             if field == "lines_canvas":
                 led_strip["lines_canvas"] = [line for line in dict_json[field]]
             elif field == "list_leds":
-                led_strip[field] = [LEDStrip.from_json(led_dict) for led_dict in dict_json[field]]
+                led_strip[field] = [LED.from_json(led_dict) for led_dict in dict_json[field]]
             else:
                 led_strip[field] = dict_json[field]
 

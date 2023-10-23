@@ -175,6 +175,7 @@ class LEDSimulator(Tk):
         # read parameters
         self.parameters.from_json(dict_simu)
         logging.debug(f"Parameters: {self.parameters}")
+        self.set_led_variables()
 
         logging.debug(f'Opening simulation at {self.parameters["simu_dest_path"]}')
         self.open_image(self.parameters["image_src_path"])
@@ -184,7 +185,7 @@ class LEDSimulator(Tk):
         logging.debug("Referential line: OK")
         self.import_led_strips()
         logging.debug("LED Strips: OK")
-        self.set_led_variables()
+
 
     def save_simulation_to_file(self):
         # file format : .decom
@@ -253,6 +254,7 @@ class LEDSimulator(Tk):
         self.draw_led_strips()
 
     def draw_led(self, led: LED):
+        logging.debug(f"LED to draw: {led}")
         x0, y0, x1, y1 = led.get_rect_coordinates()
         color = led.get("color")
 
@@ -265,7 +267,7 @@ class LEDSimulator(Tk):
             self.parameters["led_strips"][index_led_strip].update_id_led_canvas_at_index(i_led, id_led_canvas)
 
     def draw_led_strips(self):
-        for index_l_strip, led_strip in enumerate(self.parameters.get("led_strips")):
+        for index_l_strip in range(len(self.parameters["led_strips"])):
             self.draw_led_strip(index_l_strip)
 
     def generate_led_strips(self):
