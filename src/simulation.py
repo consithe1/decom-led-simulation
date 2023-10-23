@@ -37,13 +37,20 @@ class LEDSimulator(Tk):
         MENU BAR
         """
         logging.debug("Creating menu bar")
+        self.option_add('*tearOff', FALSE)
         self.menu_bar = Menu(self)
         self.config(menu=self.menu_bar)
-        self.menu_files = Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="File", menu=self.menu_files)
-        self.menu_files.add_command(label='Open Raw Image', command=self.open_image)
-        self.menu_files.add_command(label='Open Existing Simulation', command=self.open_existing_simulation)
-        self.menu_files.add_command(label='Save Simulation to file', command=self.save_simulation_to_file)
+
+        self.menu_led_display = Menu(self.menu_bar)
+
+        self.menu_led_display.add_command(label='Open LED Display', command=self.open_existing_simulation)
+        self.menu_led_display.add_command(label='Save LED Display', command=self.save_simulation_to_file)
+        self.menu_led_display.add_command(label='Exit', command=self.quit)
+        self.menu_bar.add_cascade(label="LED Display", menu=self.menu_led_display)
+
+        self.menu_background = Menu(self.menu_bar)
+        self.menu_background.add_command(label='Add Image to background', command=self.open_image_with_ask_dialog)
+        self.menu_bar.add_cascade(label="Background", menu=self.menu_background)
 
         # FRAME DESCRIPTION
         self.frame_description = Frame(self, bg="cyan", highlightbackground="black", highlightthickness=1)
@@ -155,6 +162,9 @@ class LEDSimulator(Tk):
                                                                                   ('PNG Files', '*.png')],
                                                                        defaultextension='.jpg', initialdir='assets/')
         self.open_image(self.parameters["image_src_path"])
+        self.draw_referential_line()
+        self.draw_led_lines()
+        self.draw_led_strips()
 
     def open_image(self, image_path=None):
         logging.debug(f"Opening image file at {image_path}")
