@@ -46,6 +46,7 @@ class LEDSimulator(Tk):
 
         self.menu_led_display.add_command(label='Open LED Display', command=self.open_existing_simulation)
         self.menu_led_display.add_command(label='Save LED Display', command=self.save_simulation_to_file)
+        self.menu_led_display.add_separator()
         self.menu_led_display.add_command(label='Exit', command=self.quit)
         self.menu_bar.add_cascade(label="LED Display", menu=self.menu_led_display)
 
@@ -54,7 +55,7 @@ class LEDSimulator(Tk):
         self.menu_bar.add_cascade(label="Background", menu=self.menu_background)
 
         # FRAME DESCRIPTION
-        self.frame_description = Frame(self, bg="cyan", highlightbackground="black", highlightthickness=1)
+        self.frame_description = Frame(self, highlightbackground="black", highlightthickness=1, relief="ridge")
         self.frame_description.columnconfigure(0, weight=1)
         self.label_description = Label(self.frame_description, text="Project description")
         self.label_description.pack(expand=True, fill=BOTH)
@@ -63,7 +64,7 @@ class LEDSimulator(Tk):
 
         # FRAME IMAGE/CANVAS
         logging.debug("Creating drawing canvas")
-        self.frame_image = Frame(self, bg="lavender")
+        self.frame_image = Frame(self, highlightbackground="black", highlightthickness=1, relief="ridge")
 
         self.image_canvas = Canvas(self.frame_image, width=self.parameters["width"],
                                    height=self.parameters["height"])
@@ -78,11 +79,11 @@ class LEDSimulator(Tk):
 
         # FRAME OPTIONS
         logging.debug("Creating Options frame")
-        self.frame_options = Frame(self, bg="forestgreen")
+        self.frame_options = Frame(self, bg="forestgreen", height=150)
 
         # FRAME MODE
         self.mode = StringVar()
-        self.frame_mode = Frame(self.frame_options)
+        self.frame_mode = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
         Label(self.frame_mode, text="Mode selection:").grid(row=0, column=0)
         Radiobutton(self.frame_mode, text="Enable measuring", variable=self.mode, value=MEASURING,
                     command=self.update_all_variables_and_fields).grid(row=0, column=1)
@@ -90,56 +91,55 @@ class LEDSimulator(Tk):
                     command=self.update_all_variables_and_fields).grid(row=0, column=2)
         self.mode.set(MEASURING)
 
-        self.frame_mode.grid(row=0, columnspan=4, sticky="news")
+        self.frame_mode.grid(row=0, columnspan=4, sticky="news", padx=5)
 
         # FRAME REFERENTIAL
-        self.frame_measuring = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
-        Label(self.frame_measuring, text="Referential").grid(row=0, columnspan=3, sticky='ew')
+        self.frame_referential = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
+        Label(self.frame_referential, text="Referential").grid(row=0, columnspan=3, sticky='ew')
         self.distance_pixel_var = StringVar()
         self.distance_pixel_var.set(str(0))
-        self.distance_pixel_label = Label(self.frame_measuring, textvariable=self.distance_pixel_var)
+        self.distance_pixel_label = Label(self.frame_referential, textvariable=self.distance_pixel_var)
         self.distance_pixel_label.grid(row=1, column=0, sticky='ew')
-        Label(self.frame_measuring, text="px =").grid(row=1, column=1, sticky='ew')
+        Label(self.frame_referential, text="px =").grid(row=1, column=1, sticky='ew')
         self.distance_mm_var = IntVar(value=1000)
         self.distance_mm_var.trace_add('write', self.update_label_ref_callback)
-        self.distance_mm_entry = Entry(self.frame_measuring, textvariable=self.distance_mm_var)
+        self.distance_mm_entry = Entry(self.frame_referential, textvariable=self.distance_mm_var)
         self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
-        Label(self.frame_measuring, text="mm").grid(row=1, column=3, sticky='ew')
-        Button(self.frame_measuring, text='Clear', command=self.clear_canvas).grid(row=3, sticky="ew", columnspan=4)
-        self.px_to_mm_label = Label(self.frame_measuring, text="Equivalent: None")
+        Label(self.frame_referential, text="mm").grid(row=1, column=3, sticky='ew')
+        self.px_to_mm_label = Label(self.frame_referential, text='1 px = 1 mm')
         self.px_to_mm_label.grid(row=3, columnspan=4, sticky="ew")
-        self.frame_measuring.grid(row=1, column=0, sticky="news", padx=5)
+        self.frame_referential.grid(row=1, column=0, sticky="news", padx=5, pady=5)
 
-        # FRAME DRAWING
-        self.frame_drawing = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
-        Label(self.frame_drawing, text="LED Drawing").grid(row=0, sticky="ew", columnspan=2)
+        # FRAME DRAWING OPTIONS
+        self.frame_drawing_options = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
+        Label(self.frame_drawing_options, text="LED Drawing").grid(row=0, sticky="nsew")
+        Button(self.frame_drawing_options, text="Undo", command=self.undo_last_draw).grid(row=1, sticky="nsew")
+        Button(self.frame_drawing_options, text="Clear", command=self.clear_canvas).grid(row=2, sticky="nsew")
+        self.frame_drawing_options.grid(row=1, column=1, sticky="news", padx=5, pady=5)
 
+        # FRAME LED DISPLAY OPTIONS
+        self.frame_led_display_options = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
+        Label(self.frame_led_display_options, text="LED Display Options").grid(row=0, sticky="ew")
+        # cursor led size
+        self.led_size_px_var = IntVar()
+        self.led_size_px_var.set(5)
+        Scale(self.frame_led_display_options, label="LED Size (px)", command=self.update_all_variables_and_fields, from_=2, to=10,
+              orient=HORIZONTAL,
+              resolution=1, variable=self.led_size_px_var).grid(row=1, sticky="ew")
         self.led_density_var = IntVar()
         self.led_density_var.set(LED_DENSITIES[0])
         for index, d in enumerate(LED_DENSITIES):
-            Radiobutton(self.frame_drawing, text=f"{d} LEDs/m", variable=self.led_density_var, value=d,
+            Radiobutton(self.frame_led_display_options, text=f"{d} LEDs/m", variable=self.led_density_var, value=d,
                         command=self.update_all_variables_and_fields).grid(row=index + 2, column=0, sticky="w")
-        Button(self.frame_drawing, text="Clear", command=self.clear_canvas).grid(row=2, column=1, sticky="ew")
-        Button(self.frame_drawing, text="Undo", command=self.undo_last_draw).grid(row=3, column=1, sticky="ew")
-        Button(self.frame_drawing, text="Generate LED strip", command=self.update_all_variables_and_fields).grid(row=4,
-                                                                                                                 column=1,
-                                                                                                                 sticky="ew")
-        Button(self.frame_drawing, text="Save LED strip").grid(row=5, column=1, sticky="ew")  # TODO: add command
+        self.frame_led_display_options.grid(row=1, column=2, sticky="news", padx=5, pady=5)
 
-        self.frame_drawing.grid(row=1, column=1, sticky="news", padx=5)
+        # FRAME SEQUENCE OPTIONS
+        self.frame_sequence_options = Frame(self.frame_options)
+        Label(self.frame_sequence_options, text="LED Sequence Options").pack(expand=True, fill='x')
+        self.sequence_selection_scroll = Scrollbar(self.frame_sequence_options, orient=VERTICAL)
+        # self.sequence_selection_scroll.pack(expand=True, fill='both')
 
-        # FRAME SEQUENCE TO RUN
-        self.frame_sequence = Frame(self.frame_options, highlightbackground="black", highlightthickness=1)
-        Label(self.frame_sequence, text="Sequence Options").grid(row=0, sticky="ew")
-        # cursor led size
-        self.led_size_px_var = IntVar()
-        self.led_size_px_var.set(2)
-        Scale(self.frame_sequence, label="LED Size (px)", command=self.update_all_variables_and_fields, from_=2, to=10,
-              orient=HORIZONTAL,
-              resolution=1, variable=self.led_size_px_var).grid(row=1, sticky="ew")
-        # sequence selection
-        # run button
-        self.frame_sequence.grid(row=1, column=2, sticky="news", padx=5)
+        self.frame_sequence_options.grid(row=1, column=3, sticky="news", padx=5)
 
         # Position x-y
         self.frame_cursor_position = Frame(self.frame_options)
@@ -148,9 +148,9 @@ class LEDSimulator(Tk):
         self.cursor_pos_label = Label(self.frame_cursor_position, textvariable=self.cursor_pos_var, anchor="e",
                                       relief=SUNKEN)
         self.cursor_pos_label.pack()
-        self.frame_cursor_position.grid(row=1, column=3, sticky="news", padx=5)
+        self.frame_cursor_position.grid(row=1, column=4, sticky="news", padx=5)
 
-        self.frame_options.grid(row=2, columnspan=1, sticky="news", padx=5, pady=5)
+        self.frame_options.grid(row=2, sticky="ew", padx=5, pady=5)
         self.update_mode()
 
     """
@@ -171,10 +171,11 @@ class LEDSimulator(Tk):
         logging.debug(f"Opening image file at {image_path}")
         if image_path is not None:
             image = Image.open(image_path)
-            image_resized = image.resize((self.parameters["width"], self.parameters["height"]))
+            # resize based on canvas dimensions
+            image.thumbnail((self.parameters["width"], self.parameters["height"]), Image.Resampling.LANCZOS)
 
-            self.tk_image = ImageTk.PhotoImage(image_resized)
-            self.id_image_canvas = self.image_canvas.create_image(0, 0, image=self.tk_image, anchor='nw')
+            self.tk_image = ImageTk.PhotoImage(image)
+            self.id_image_canvas = self.image_canvas.create_image(0, 0, image=self.tk_image, anchor="nw")
 
     def open_existing_simulation(self):
         # TODO if new simu is opened while another one has been opened, LEDs are overlapping
@@ -255,13 +256,15 @@ class LEDSimulator(Tk):
             logging.debug("Adding LED strip line")
             self.parameters.add_led_strip(self.current_drawing_strip.copy())
             self.current_drawing_strip = []
+            self.update_all_variables_and_fields()
 
     def button_1_pressed(self, event):
         if self.mode.get() == DRAWING:
             self.last_x, self.last_y = event.x, event.y
 
         elif self.mode.get() == MEASURING and not self.measuring:
-            self.parameters["referential"].set_origin(event.x, event.y)
+            self.parameters["referential"]["x_src"] = event.x
+            self.parameters["referential"]["y_src"] = event.y
             self.measuring = True
 
         self.update_position(event)
@@ -407,16 +410,20 @@ class LEDSimulator(Tk):
     def update_mode(self):
         logging.debug("Updating drawing mode")
         if self.mode.get() == DRAWING:
-            for child in self.frame_measuring.winfo_children():
+            for child in self.frame_referential.winfo_children():
                 child.configure(state='disable')
-            for child in self.frame_drawing.winfo_children():
+            for child in self.frame_drawing_options.winfo_children():
+                child.configure(state='normal')
+            for child in self.frame_led_display_options.winfo_children():
                 child.configure(state='normal')
             self.parameters["app_mode"] = DRAWING
 
         if self.mode.get() == MEASURING:
-            for child in self.frame_measuring.winfo_children():
+            for child in self.frame_referential.winfo_children():
                 child.configure(state='normal')
-            for child in self.frame_drawing.winfo_children():
+            for child in self.frame_drawing_options.winfo_children():
+                child.configure(state='disable')
+            for child in self.frame_led_display_options.winfo_children():
                 child.configure(state='disable')
             self.parameters["app_mode"] = MEASURING
 

@@ -25,10 +25,6 @@ class Referential(dict):
     def set(self, key, val):
         self[key] = val
 
-    def set_origin(self, x, y):
-        self["x_src"] = x
-        self["y_src"] = y
-
     def set_dest(self, x, y):
         self["x_dest"] = x
         self["y_dest"] = y
@@ -41,7 +37,8 @@ class Referential(dict):
             math.pow(self["x_dest"] - self["x_src"], 2) + math.pow(self["y_dest"] - self["x_dest"], 2))
 
     def update_referential(self, x_dest, y_dest, dist_mm_input):
-        self.set_dest(x_dest, y_dest)
+        self.set("x_dest", x_dest)
+        self.set("y_dest", y_dest)
 
         self.set_dist_px_src_to_dest()
         self.set("dist_mm_src_to_dest", dist_mm_input)
