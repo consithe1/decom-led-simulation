@@ -1,3 +1,4 @@
+import logging
 import math
 from src.rgb_leds.led import LED
 
@@ -137,12 +138,14 @@ class LEDStrip:
     def from_json(self, dict_json):
         for field in dict_json.keys():
             if field == "lines_canvas":
-                self.lines_canvas = [line_canvas for line_canvas in dict_json[field]]
+                for line in dict_json[field]:
+                    self.lines_canvas.append(line)
+                logging.debug(f"Lines canvas for strip: {self.lines_canvas}")
 
             elif field == "list_leds":
+                logging.debug(f"List LEDs JSON object: {dict_json[field]}")
                 for led_json in dict_json[field]:
-                    led = LED()
-                    led.from_json(led_json)
-                    self.list_leds.append(led)
+                    self.list_leds.append(LED().from_json(led_json))
+                logging.debug(f"List LEDs: {self.list_leds}")
             else:
                 setattr(self, field, dict_json[field])

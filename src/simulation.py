@@ -16,8 +16,6 @@ class LEDSimulator(Tk):
         self.last_x = None
         self.last_y = None
 
-        self.next_strip_id = 0
-
         self.current_drawing_strip = []
 
         # to read from simulation file
@@ -185,7 +183,6 @@ class LEDSimulator(Tk):
         self.draw_referential_line()
         self.draw_led_lines()
         self.set_led_variables()
-        self.update_all_variables_and_fields()
 
     def save_simulation_to_file(self):
         # file format : .decom
@@ -235,9 +232,8 @@ class LEDSimulator(Tk):
 
         elif self.mode.get() == DRAWING:
             logging.debug("Adding LED strip line")
-            self.parameters.led_strips.append(LEDStrip(self.current_drawing_strip.copy(), self.next_strip_id))
+            self.parameters.add_led_strip(self.current_drawing_strip.copy())
             self.current_drawing_strip = []
-            self.next_strip_id += 1
 
     def button_1_pressed(self, event):
         if self.mode.get() == DRAWING:
@@ -330,16 +326,18 @@ class LEDSimulator(Tk):
 
     def draw_led_lines(self):
         logging.debug("Drawing LED lines")
+        logging.debug(f"LED strips: {self.parameters.led_strips}")
 
         # get led strips
-
-        # get led lines
-
-        # draw lines
-
-        # update line_id on led strip list
-
-        pass
+        for index_led_strip, led_strip in enumerate(self.parameters.led_strips):
+            logging.debug(f"LED Strip index: {index_led_strip}")
+            # get led lines
+            for index_line, led_strip_line in enumerate(self.parameters.led_strips[index_led_strip].lines_canvas):
+                logging.debug(f"LED Strip line: {led_strip_line}")
+                # draw lines
+                _, [x_src, y_src, x_dest, y_dest] = led_strip_line
+                id_line = self.draw_line(x_src, y_src, x_dest, y_dest, led_strip.fill, led_strip.width)
+                self.parameters.led_strips[index_led_strip].lines_canvas[index_line][0] = id_line
 
     """
     UPDATE FUNCTIONS
