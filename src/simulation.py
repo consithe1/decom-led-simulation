@@ -64,18 +64,14 @@ class LEDSimulator(Tk):
 
         # FRAME IMAGE/CANVAS
         logging.debug("Creating drawing canvas")
-        self.frame_image = Frame(self, highlightbackground="black", highlightthickness=1, relief="ridge")
 
-        self.image_canvas = Canvas(self.frame_image, width=self.parameters["width"],
-                                   height=self.parameters["height"])
-        self.image_canvas.pack(expand=True, fill=BOTH)
-        self.image_canvas.bind("<Motion>", self.update_position)
-        self.image_canvas.bind("<Button-1>", self.button_1_pressed)
-        self.image_canvas.bind("<B1-Motion>", self.add_line)
-        self.image_canvas.bind("<ButtonRelease-1>", self.button_1_released)
-        self.frame_image.grid(row=1, sticky="nsew")
-        self.label_ref = Label(self.frame_image,
-                               text=f'{self.parameters["referential"]["dist_mm_src_to_dest"]} mm')
+        self.canvas_image = Canvas(self, highlightbackground="black", highlightthickness=1, relief="ridge")
+        self.canvas_image.bind("<Motion>", self.update_position)
+        self.canvas_image.bind("<Button-1>", self.button_1_pressed)
+        self.canvas_image.bind("<B1-Motion>", self.add_line)
+        self.canvas_image.bind("<ButtonRelease-1>", self.button_1_released)
+        self.canvas_image.grid(row=1, sticky="news")
+        self.label_ref = Label(self.canvas_image)
 
         # FRAME OPTIONS
         logging.debug("Creating Options frame")
@@ -90,23 +86,22 @@ class LEDSimulator(Tk):
         Radiobutton(self.frame_mode, text="Enable drawing", variable=self.mode, value=DRAWING,
                     command=self.update_all_variables_and_fields).grid(row=0, column=2)
         self.mode.set(MEASURING)
-
         self.frame_mode.grid(row=0, columnspan=4, sticky="news", padx=5)
 
         # FRAME REFERENTIAL
         self.frame_referential = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
         Label(self.frame_referential, text="Referential").grid(row=0, columnspan=3, sticky='ew')
         self.distance_pixel_var = StringVar()
-        self.distance_pixel_var.set(str(0))
+        self.distance_pixel_var.set('n')
         self.distance_pixel_label = Label(self.frame_referential, textvariable=self.distance_pixel_var)
         self.distance_pixel_label.grid(row=1, column=0, sticky='ew')
         Label(self.frame_referential, text="px =").grid(row=1, column=1, sticky='ew')
         self.distance_mm_var = IntVar(value=1000)
-        self.distance_mm_var.trace_add('write', self.update_label_ref_callback)
+        self.distance_mm_var.trace_add('write', self.update_all_variables_and_fields)
         self.distance_mm_entry = Entry(self.frame_referential, textvariable=self.distance_mm_var)
         self.distance_mm_entry.grid(row=1, column=2, sticky='ew')
         Label(self.frame_referential, text="mm").grid(row=1, column=3, sticky='ew')
-        self.px_to_mm_label = Label(self.frame_referential, text='1 px = 1 mm')
+        self.px_to_mm_label = Label(self.frame_referential, text='1 px = n mm')
         self.px_to_mm_label.grid(row=3, columnspan=4, sticky="ew")
         self.frame_referential.grid(row=1, column=0, sticky="news", padx=5, pady=5)
 
@@ -175,7 +170,7 @@ class LEDSimulator(Tk):
             image.thumbnail((self.parameters["width"], self.parameters["height"]), Image.Resampling.LANCZOS)
 
             self.tk_image = ImageTk.PhotoImage(image)
-            self.id_image_canvas = self.image_canvas.create_image(0, 0, image=self.tk_image, anchor="nw")
+            self.id_image_canvas = self.canvas_image.create_image(0, 0, image=self.tk_image, anchor="nw")
 
     def open_existing_simulation(self):
         # TODO if new simu is opened while another one has been opened, LEDs are overlapping
@@ -186,7 +181,7 @@ class LEDSimulator(Tk):
         )
 
         # remove possible previous background
-        self.image_canvas.delete(self.id_image_canvas)
+        self.canvas_image.delete(self.id_image_canvas)
 
         # clear canvas from previous drawn stuff
         self.clear_all_canvas()
@@ -215,7 +210,7 @@ class LEDSimulator(Tk):
         logging.debug(f'Saving simulation to {self.parameters["simu_dest_path"]}')
 
     def remove_obj_from_canvas(self, id_obj):
-        self.image_canvas.delete(id_obj)
+        self.canvas_image.delete(id_obj)
 
     def undo_last_draw(self):
         logging.debug("Undo last led strip drawn")
@@ -237,7 +232,7 @@ class LEDSimulator(Tk):
             self.parameters["led_strips"] = []
 
         elif option == MEASURING:
-            self.image_canvas.delete(self.parameters["referential"].remove_from_canvas())
+            self.canvas_image.delete(self.parameters["referential"].remove_from_canvas())
             self.remove_label_ref()
 
     def clear_all_canvas(self):
@@ -256,13 +251,12 @@ class LEDSimulator(Tk):
             logging.debug("Adding LED strip line")
             self.parameters.add_led_strip(self.current_drawing_strip.copy())
             self.current_drawing_strip = []
-            self.update_all_variables_and_fields()
+        self.update_all_variables_and_fields()
 
     def button_1_pressed(self, event):
-        if self.mode.get() == DRAWING:
-            self.last_x, self.last_y = event.x, event.y
+        self.last_x, self.last_y = event.x, event.y
 
-        elif self.mode.get() == MEASURING and not self.measuring:
+        if self.mode.get() == MEASURING and not self.measuring:
             self.parameters["referential"]["x_src"] = event.x
             self.parameters["referential"]["y_src"] = event.y
             self.measuring = True
@@ -279,7 +273,7 @@ class LEDSimulator(Tk):
         x0, y0, x1, y1 = led.get_rect_coordinates()
         color = led.get("color")
 
-        id_led = self.image_canvas.create_rectangle(x0, y0, x1, y1, fill=color)
+        id_led = self.canvas_image.create_rectangle(x0, y0, x1, y1, fill=color)
         return id_led
 
     def draw_led_strip(self, index_led_strip):
@@ -325,7 +319,7 @@ class LEDSimulator(Tk):
         if dash is not None:
             dash = tuple(dash)
 
-        return self.image_canvas.create_line(
+        return self.canvas_image.create_line(
             x_src,
             y_src,
             x_dest,
@@ -370,7 +364,7 @@ class LEDSimulator(Tk):
             arrow=self.parameters["referential"]["arrow"]
         )
 
-        self.update_label_ref()
+        self.update_label_ref_canvas()
 
     def draw_led_lines(self):
         logging.debug("Drawing LED lines")
@@ -430,25 +424,35 @@ class LEDSimulator(Tk):
     def remove_label_ref(self):
         self.label_ref.destroy()
 
-    def update_label_ref(self):
+    def update_label_ref_canvas(self):
+        # updating the label drawn under the reference line on the canvas
         self.remove_label_ref()
-        self.label_ref = Label(self.frame_image,
+        self.label_ref = Label(self.canvas_image,
                                text=f'{self.parameters["referential"]["dist_mm_src_to_dest"]} mm')
         self.label_ref.place(
             x=(self.parameters["referential"]["x_src"] + self.parameters["referential"]["x_dest"]) / 2 - 30,
             y=(self.parameters["referential"]["y_src"] + self.parameters["referential"]["y_dest"]) / 2 + 10)
 
-    def update_label_ref_ratio(self):
-        self.px_to_mm_label.config(text=f'1 px = {self.parameters["referential"]["ratio_px_to_mm"]} mm')
+    def update_label_ref_dist_px(self):
+        # updating
+        self.distance_pixel_var.set(f'{int(self.parameters["referential"]["dist_px_src_to_dest"])}')
 
-    def update_label_ref_callback(self, var, index, mode):
+    def update_label_ref_ratio(self):
+        self.px_to_mm_label.config(text=f'1 px = {self.parameters["referential"]["ratio_px_to_mm"]:.2f} mm')
+
+    def update_ref_entry(self, var, index, mode):
+        self.parameters["referential"].update_referential_from_dist_mm(var)
+
+    def update_label_ref_callback(self):
         try:
-            var = self.distance_mm_var.get()
+            self.parameters["referential"].update_referential_from_dist_mm(self.distance_mm_var.get())
         except TclError:
-            var = 0
-        self.parameters["referential"].set("dist_mm_src_to_dest", var)
+            logging.debug("Distance in mm entry is None or empty string")
+            self.parameters["referential"].update_referential_from_dist_mm(1000)
+
+        self.update_label_ref_dist_px()
+        self.update_label_ref_canvas()
         self.update_label_ref_ratio()
-        self.update_label_ref()
 
     def update_description(self):
         logging.debug("Updating description")
@@ -462,6 +466,6 @@ class LEDSimulator(Tk):
         # update LEDs based on density and display size
         self.update_leds(var)
         # updating ref label on canvas measure and ref label in frame referential
-        self.update_label_ref_callback(var, index, mode)
+        self.update_label_ref_callback()
         # updating description
         self.update_description()

@@ -37,10 +37,16 @@ class Referential(dict):
             math.pow(self["x_dest"] - self["x_src"], 2) + math.pow(self["y_dest"] - self["x_dest"], 2))
 
     def update_referential(self, x_dest, y_dest, dist_mm_input):
+        # update x et y dest
         self.set("x_dest", x_dest)
         self.set("y_dest", y_dest)
 
+        self.update_referential_from_dist_mm(dist_mm_input)
+
+    def update_referential_from_dist_mm(self, dist_mm_input):
+        # update distance in px between src and dest
         self.set_dist_px_src_to_dest()
+        # update distance in mm between src and dest
         self.set("dist_mm_src_to_dest", dist_mm_input)
 
         self.set_ratio_px_to_mm()
