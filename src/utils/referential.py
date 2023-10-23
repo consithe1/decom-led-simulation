@@ -13,21 +13,13 @@ class Referential:
         self.dash = (10, 5)
         self.width = 2
         self.tags = "measuring"
-        self.arrow = None
+        self.arrow = "both"
 
         self.dist_px_src_to_dest = 1000
         self.dist_mm_src_to_dest = 1000
         self.ratio_px_to_mm = 1
 
         self.id_line_canvas = None
-
-        self.is_defined = False
-
-    def set_is_defined(self):
-        self.is_defined = True
-
-    def exists(self):
-        return self.is_defined
 
     def get_id_line_canvas(self):
         return self.id_line_canvas
@@ -94,6 +86,18 @@ class Referential:
                 setattr(self, field, [item for item in dict_json[field]])
             else:
                 setattr(self, field, dict_json[field])
+
+    def set_x_src(self, value: int):
+        self.x_src = value
+
+    def set_y_src(self, value: int):
+        self.y_src = value
+
+    def set_x_dest(self, value: int):
+        self.x_dest = value
+
+    def set_y_dest(self, value: int):
+        self.y_dest = value
 
     def to_json(self):
         dict_json = {}

@@ -34,7 +34,7 @@ class Parameters:
 
         return json.dumps(dict_json, sort_keys=True, indent=4)
 
-    def create_from_json(self, dict_json: dict):
+    def from_json(self, dict_json: dict):
         for field in dict_json.keys():
             if field == "referential":
                 self.referential.from_json(dict_json[field])
@@ -45,5 +45,3 @@ class Parameters:
                     self.led_strips.append(l_strip)
             else:
                 setattr(self, field, dict_json[field])
-
-        print(vars(self))

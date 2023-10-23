@@ -30,7 +30,7 @@ def calculate_line_length(x_src, y_src, x_dest, y_dest):
 
 class LEDStrip:
 
-    def __init__(self, lines=None):
+    def __init__(self, lines=None, next_strip_id=0):
         if lines is None:
             lines = []
         self.length_px = None
@@ -38,6 +38,12 @@ class LEDStrip:
         self.led_density = None
         self.lines_canvas: list[list[int, list[int]]] = lines
         self.list_leds: list[LED] = []
+
+        self.fill = "red"
+        self.width = 1
+
+        self.strip_id = next_strip_id
+        self.next_led_id = 0
 
     def calculate_line_mm(self, reference):
         pass
@@ -47,9 +53,6 @@ class LEDStrip:
 
     def get_list_leds(self):
         return self.list_leds
-
-    def add_led(self, led):
-        self.list_leds.append(led)
 
     def add_lines(self, list_elem):
         self.lines_canvas = list_elem
@@ -87,11 +90,14 @@ class LEDStrip:
     def add_id_canvas_to_led(self, index, new_id):
         self.list_leds[index].set_id_led_canvas(new_id)
 
-    def add_prev_id_canvas_to_led(self, index, prev_id):
-        self.list_leds[index].set_id_previous_led_canvas(prev_id)
+    def add_prev_id_to_led(self, index, prev_id):
+        self.list_leds[index].set_id_previous_led(prev_id)
 
-    def add_next_id_canvas_to_led(self, index, next_id):
-        self.list_leds[index].set_id_next_led_canvas(next_id)
+    def add_next_id_to_led(self, index, next_id):
+        self.list_leds[index].set_id_next_led(next_id)
+
+    def get_id_led_at_index(self, index):
+        return self.list_leds[index].get_id_led()
 
     def calculate_led_positions(self, ratio_px_to_mm, density, led_size):
         path = self.generate_path_between_canvas_lines()
@@ -107,10 +113,13 @@ class LEDStrip:
                 travel_distance = -1
 
                 # add led or position
-                led = LED((x, y), led_size)
-                self.list_leds.append(led)
+                self.add_new_led(x, y, led_size)
 
             travel_distance += 1
+
+    def add_new_led(self, x, y, led_size):
+        self.list_leds.append(LED((x, y), led_size, self.strip_id, self.next_led_id))
+        self.next_led_id += 1
 
     def to_json(self):
         dict_json = {}
@@ -137,5 +146,3 @@ class LEDStrip:
                     self.list_leds.append(led)
             else:
                 setattr(self, field, dict_json[field])
-
-        print("LED strip:", vars(self))
