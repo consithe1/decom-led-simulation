@@ -12,3 +12,6 @@ LED_STRIPS_KEY = "led_strips"
 WIDTH_KEY = "width"
 HEIGHT_KEY = "height"
 DESCRIPTION_KEY = "description"
+
+DIR_LED_DISPLAY_DEFAULT = "displays/"
+DIR_IMAGE_DEFAULT = "assets/"
