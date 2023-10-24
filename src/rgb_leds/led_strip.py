@@ -29,7 +29,7 @@ def calculate_line_length(x_src, y_src, x_dest, y_dest):
     return math.sqrt(math.pow(y_dest - y_src, 2) + math.pow(x_dest - x_src, 2))
 
 
-class LEDStrip:
+class LEDStrip(object):
 
     def __init__(self, lines=None, next_strip_id=0):
         if lines is None:

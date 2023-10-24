@@ -4,7 +4,7 @@ from src.utils.constants import *
 import logging
 
 
-class Parameters:
+class Parameters(object):
 
     def __init__(self):
         self.led_density = 30

@@ -1,4 +1,4 @@
-class LED:
+class LED(object):
 
     def __init__(self, x=None, y=None, color='pink', led_size_px=2, id_led_canvas=None, id_strip=None, led_id=None,
                  led_id_from_strip=None, id_previous_led=None, id_next_led=None, manufacturer=None,

@@ -1,7 +1,7 @@
 import math
 
 
-class Referential:
+class Referential(object):
 
     def __init__(self):
         self.x_src = None
