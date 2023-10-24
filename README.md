@@ -1,21 +1,47 @@
-# decom-led-simulation
+# LED Simulation and Display Tool (LSD-T)
 
 ## Description
-This project is to simulate LED strips and run sequences in order to visualise them before implementing them IRL.
+This project is to simulate LED strips and run animations in order to visualise them 
+before implementing them IRL.
 
 ## Functionalities
-- Import an image
-- Import an existing simulation
-- Save a simulation
-- Draw on a canvas
-  - Draw referential line
-  - Draw LED lines
-- Generate LED strips based on lines drawn
-- Parameters
-  - LED size (in px)
-  - LED density (in LEDs/m)
+
+### Define a referential
+> A referential is an object that makes the equivalence between distances in real life
+(in *mm*) and distances in the program (in *px*)
+
+In order to define it, a few features are available:
+- drawing a reference line (represented as a blue dashed line)
+- defining the reference line length (in *mm*)
+
+### LED Displays
+
+> A LED Display is an aggregation of LED strips (nd. a LED display can contain 
+just one LED strip).
+
+In this simulation, a LED display is just a `list` of LED Strips.
+
+### LED Strips
+
+> A LED Strip is an aggregation of LEDs (nd. a LED strip can contain just one LED)
+
+This object has a few parameters but the major ones are the `lines` and the `LEDs`. 
+These parameters are represented has `list` objects in the simulation.
+
+A line is represented as follows: `[id_line_on_canvas, [x0, y0, x1, y1]]`
+
+### Import / Save LED Display
+Once a LED display has been created or modified, it can be saved to a `.decom` file. 
+The same way it is saved, it can be imported in the application by selecting a valid `.decom` file.
+
+### LED Sequences
+
+> A LED sequence is defined as bytes of data to give to the LEDs to display something
+
+
 
 ## To implement
-- LED sequences
-- simulation import verifications
-- closing simulation
+- `.decom` import verifications
+
+## Known Issues
+- Updating the distance in mm doesn't actualise properly the LED display
