@@ -42,6 +42,8 @@ The same way it is saved, it can be imported in the application by selecting a v
 
 ## To implement
 - `.decom` import verifications
+- add zoom-in and zoom-out features when drawing on canvas
 
 ## Known Issues
 - Updating the distance in mm doesn't actualise properly the LED display
+- Images are not properly resized when imported : need to resize the image and center it on the canvas
