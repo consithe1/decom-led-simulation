@@ -7,7 +7,7 @@ class FileUtils:
 
     @staticmethod
     def save_simulation_to_file(parameters: Parameters):
-        with open(parameters.get("simu_dest_path"), "w") as outfile:
+        with open(parameters.get_simu_dest_path(), "w") as outfile:
             outfile.write(json.dumps(parameters, indent=4))
 
     @staticmethod

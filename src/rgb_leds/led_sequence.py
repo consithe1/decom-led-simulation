@@ -8,15 +8,19 @@ class LEDSequence(dict):
         self.name = name
 
         self.stop = True
+        self.n_leds = 0
+
+    def set_n_leds(self, n_leds):
+        self.n_leds = n_leds
+
+    def generate_step(self):
+        pass
 
     def run(self):
         self.stop = False
         while not self.stop:
             step_values = self.list_steps[self.current_step_index % len(self.list_steps)]
             self.current_step_index += 1
-
-
-
 
             pass
 

@@ -22,8 +22,8 @@ class LEDSimulator(Tk):
         # to read from simulation file
         self.parameters = Parameters()
 
-        self.parameters["width"] = self.winfo_screenwidth()
-        self.parameters["height"] = self.winfo_screenheight()
+        self.parameters.set_width(self.winfo_screenwidth())
+        self.parameters.set_height(self.winfo_screenheight())
 
         self.measuring = False
         self.tk_image = None
@@ -89,7 +89,8 @@ class LEDSimulator(Tk):
         self.frame_mode.grid(row=0, columnspan=4, sticky="news", padx=5)
 
         # FRAME REFERENTIAL
-        self.frame_referential = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
+        self.frame_referential = Frame(self.frame_options, highlightbackground="black", highlightthickness=1,
+                                       relief="ridge")
         Label(self.frame_referential, text="Referential").grid(row=0, columnspan=3, sticky='ew')
         self.distance_pixel_var = StringVar()
         self.distance_pixel_var.set('n')
@@ -106,19 +107,22 @@ class LEDSimulator(Tk):
         self.frame_referential.grid(row=1, column=0, sticky="news", padx=5, pady=5)
 
         # FRAME DRAWING OPTIONS
-        self.frame_drawing_options = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
+        self.frame_drawing_options = Frame(self.frame_options, highlightbackground="black", highlightthickness=1,
+                                           relief="ridge")
         Label(self.frame_drawing_options, text="LED Drawing").grid(row=0, sticky="nsew")
         Button(self.frame_drawing_options, text="Undo", command=self.undo_last_draw).grid(row=1, sticky="nsew")
         Button(self.frame_drawing_options, text="Clear", command=self.clear_canvas).grid(row=2, sticky="nsew")
         self.frame_drawing_options.grid(row=1, column=1, sticky="news", padx=5, pady=5)
 
         # FRAME LED DISPLAY OPTIONS
-        self.frame_led_display_options = Frame(self.frame_options, highlightbackground="black", highlightthickness=1, relief="ridge")
+        self.frame_led_display_options = Frame(self.frame_options, highlightbackground="black", highlightthickness=1,
+                                               relief="ridge")
         Label(self.frame_led_display_options, text="LED Display Options").grid(row=0, sticky="ew")
         # cursor led size
         self.led_size_px_var = IntVar()
         self.led_size_px_var.set(5)
-        Scale(self.frame_led_display_options, label="LED Size (px)", command=self.update_all_variables_and_fields, from_=2, to=10,
+        Scale(self.frame_led_display_options, label="LED Size (px)", command=self.update_all_variables_and_fields,
+              from_=2, to=10,
               orient=HORIZONTAL,
               resolution=1, variable=self.led_size_px_var).grid(row=1, sticky="ew")
         self.led_density_var = IntVar()
@@ -153,11 +157,12 @@ class LEDSimulator(Tk):
     """
 
     def open_image_with_ask_dialog(self):
-        self.parameters["image_src_path"] = filedialog.askopenfilename(title="Open file",
-                                                                       filetypes=[('JPEG Files', '*.jpg'),
-                                                                                  ('PNG Files', '*.png')],
-                                                                       defaultextension='.jpg', initialdir=DIR_IMAGE_DEFAULT)
-        self.open_image(self.parameters["image_src_path"])
+        self.parameters.set_image_src_path(filedialog.askopenfilename(title="Open file",
+                                                                      filetypes=[('JPEG Files', '*.jpg'),
+                                                                                 ('PNG Files', '*.png')],
+                                                                      defaultextension='.jpg',
+                                                                      initialdir=DIR_IMAGE_DEFAULT))
+        self.open_image(self.parameters.get_image_src_path())
         self.draw_referential_line()
         self.draw_led_lines()
         self.draw_led_strips()
@@ -167,7 +172,7 @@ class LEDSimulator(Tk):
         if image_path is not None:
             image = Image.open(image_path)
             # resize based on canvas dimensions
-            image.thumbnail((self.parameters["width"], self.parameters["height"]), Image.Resampling.LANCZOS)
+            image.thumbnail((self.parameters.get_width(), self.parameters.get_height()), Image.Resampling.LANCZOS)
 
             self.tk_image = ImageTk.PhotoImage(image)
             self.id_image_canvas = self.canvas_image.create_image(0, 0, image=self.tk_image, anchor="nw")
@@ -187,12 +192,12 @@ class LEDSimulator(Tk):
         self.clear_all_canvas()
 
         # read parameters
-        self.parameters.from_json(dict_simu)
+        # TODO read json file and populate object classes
         logging.debug(f"Parameters: {self.parameters}")
         self.set_led_variables()
 
-        logging.debug(f'Opening simulation at {self.parameters["simu_dest_path"]}')
-        self.open_image(self.parameters["image_src_path"])
+        logging.debug(f'Opening simulation at {self.parameters.get_simu_dest_path()}')
+        self.open_image(self.parameters.get_image_src_path())
 
         # update vars
         self.draw_referential_line()
@@ -202,20 +207,20 @@ class LEDSimulator(Tk):
 
     def save_simulation_to_file(self):
         # file format : .decom
-        self.parameters["simu_dest_path"] = filedialog.asksaveasfilename(initialfile='simulation-1',
-                                                                         defaultextension=".decom",
-                                                                         filetypes=[("Decom Files", "*.decom")],
-                                                                         initialdir=DIR_LED_DISPLAY_DEFAULT)
+        self.parameters.simu_dest_path(filedialog.asksaveasfilename(initialfile='simulation-1',
+                                                                    defaultextension=".decom",
+                                                                    filetypes=[("Decom Files", "*.decom")],
+                                                                    initialdir=DIR_LED_DISPLAY_DEFAULT))
         FileUtils.save_simulation_to_file(self.parameters)
-        logging.debug(f'Saving simulation to {self.parameters["simu_dest_path"]}')
+        logging.debug(f'Saving simulation to {self.parameters.simu_dest_path()}')
 
     def remove_obj_from_canvas(self, id_obj):
         self.canvas_image.delete(id_obj)
 
     def undo_last_draw(self):
         logging.debug("Undo last led strip drawn")
-        if len(self.parameters["led_strips"]) != 0:
-            obj_to_del = self.parameters["led_strips"].pop()
+        if len(self.parameters.get_led_strips()) != 0:
+            obj_to_del = self.parameters.led_strips_pop()
             ids_to_del = obj_to_del.delete_object()
             [self.remove_obj_from_canvas(id_del) for id_del in ids_to_del]
 
@@ -226,13 +231,13 @@ class LEDSimulator(Tk):
     def clear_canvas(self, option=DRAWING):
         logging.debug("Clearing canvas based on option given")
         if option == DRAWING:
-            for led_strip in self.parameters["led_strips"]:
+            for led_strip in self.parameters.get_led_strips():
                 [self.remove_obj_from_canvas(id_obj) for id_obj in led_strip.delete_object()]
 
-            self.parameters["led_strips"] = []
+            self.parameters.set_led_strips([])
 
         elif option == MEASURING:
-            self.canvas_image.delete(self.parameters["referential"].remove_from_canvas())
+            self.canvas_image.delete(self.parameters.remove_referential_from_canvas())
             self.remove_label_ref()
 
     def clear_all_canvas(self):
@@ -244,7 +249,7 @@ class LEDSimulator(Tk):
         self.add_line(event)
         if self.mode.get() == MEASURING:
             logging.debug(
-                f'Adding referential line between {self.parameters["referential"].get("x_src"), self.parameters["referential"].get("y_src")} and {self.parameters["referential"].get("x_dest"), self.parameters["referential"].get("y_dest")}')
+                f'Adding referential line between {self.parameters.get_referential().get_x_src(), self.parameters.get_referential().get_y_src()} and {self.parameters.get_referential().get_x_dest(), self.parameters.get_referential().get_y_dest()}')
             self.measuring = False
 
         elif self.mode.get() == DRAWING:
@@ -257,8 +262,8 @@ class LEDSimulator(Tk):
         self.last_x, self.last_y = event.x, event.y
 
         if self.mode.get() == MEASURING and not self.measuring:
-            self.parameters["referential"]["x_src"] = event.x
-            self.parameters["referential"]["y_src"] = event.y
+            self.parameters.referential.set_x_src(event.x)
+            self.parameters.referential.set_y_src(event.y)
             self.measuring = True
 
         self.update_position(event)
@@ -271,43 +276,41 @@ class LEDSimulator(Tk):
     def draw_led(self, led: LED):
         logging.debug(f"LED to draw: {led}")
         x0, y0, x1, y1 = led.get_rect_coordinates()
-        color = led.get("color")
 
-        id_led = self.canvas_image.create_rectangle(x0, y0, x1, y1, fill=color)
+        id_led = self.canvas_image.create_rectangle(x0, y0, x1, y1, fill=led.get_color())
         return id_led
 
     def draw_led_strip(self, index_led_strip):
-        for i_led, led in enumerate(self.parameters["led_strips"][index_led_strip]["list_leds"]):
+        for i_led, led in enumerate(self.parameters.get_led_strip_at_index(index_led_strip).get_list_leds()):
             id_led_canvas = self.draw_led(led)
-            self.parameters["led_strips"][index_led_strip].update_id_led_canvas_at_index(i_led, id_led_canvas)
+            self.parameters.led_strips[index_led_strip].update_id_led_canvas_at_index(i_led, id_led_canvas)
 
     def draw_led_strips(self):
-        for index_l_strip in range(len(self.parameters["led_strips"])):
+        for index_l_strip in range(len(self.parameters.get_led_strips())):
             self.draw_led_strip(index_l_strip)
 
     def generate_led_strips(self):
         logging.debug("Generating LED strips")
         prev_strip_index, prev_led_index, prev_led_id = -1, -1, None
 
-        for i in range(len(self.parameters["led_strips"])):
+        for i in range(len(self.parameters.get_led_strips())):
             # remove previous leds from canvas, LEDStrip list
-            self.remove_objs_from_canvas(self.parameters["led_strips"][i].remove_leds())
+            self.remove_objs_from_canvas(self.parameters.led_strips[i].remove_leds())
             # calculate new led positions based on LED density and LED size
-            self.parameters["led_strips"][i].calculate_led_positions(
-                self.parameters["referential"]["ratio_px_to_mm"],
+            self.parameters.led_strips[i].calculate_led_positions(
+                self.parameters.get_referential().get_ratio_px_to_mm(),
                 self.led_density_var.get(), self.led_size_px_var.get())
 
             # add leds to canvas
-            for j, led in enumerate(self.parameters["led_strips"][i]["list_leds"]):
+            for j, led in enumerate(self.parameters.get_led_strips()[i].get_list_leds()):
                 id_led_canvas = self.draw_led(led)
 
                 # exchange information between LEDs and strips
-                self.parameters["led_strips"][i].update_id_led_canvas_at_index(j, id_led_canvas)
-                id_led = self.parameters["led_strips"][i].get_id_led_at_index(j)
+                self.parameters.led_strips[i].update_id_led_canvas_at_index(j, id_led_canvas)
+                id_led = self.parameters.led_strips[i].get_id_led_at_index(j)
                 if prev_led_id is not None:
-                    self.parameters["led_strips"][i].add_prev_id_to_led(j, prev_led_id)
-                    self.parameters["led_strips"][prev_strip_index].add_next_id_to_led(prev_led_index,
-                                                                                       id_led)
+                    self.parameters.led_strips[i].add_prev_id_to_led(j, prev_led_id)
+                    self.parameters.led_strips[prev_strip_index].add_next_id_to_led(prev_led_index, id_led)
 
                 prev_strip_index, prev_led_index, prev_led_id = i, j, id_led
 
@@ -333,54 +336,54 @@ class LEDSimulator(Tk):
         )
 
     def add_line(self, event):
-        if self.parameters["app_mode"] == DRAWING:
+        if self.parameters.app_mode == DRAWING:
             line_id = self.draw_line(self.last_x, self.last_y, event.x, event.y, fill="red", width=1, tags=DRAWING,
                                      smooth=True)
             self.current_drawing_strip.append([line_id, [self.last_x, self.last_y, event.x, event.y]])
 
             self.last_x, self.last_y = event.x, event.y
-        elif self.parameters["app_mode"] == MEASURING:
-            self.parameters["referential"].set("x_dest", event.x)
-            self.parameters["referential"].set("y_dest", event.y)
+        elif self.parameters.app_mode == MEASURING:
+            self.parameters.referential.x_dest = event.x
+            self.parameters.referential.y_dest = event.y
             self.draw_referential_line()
 
     def remove_referential_elements(self):
-        self.remove_obj_from_canvas(self.parameters["referential"]["id_line_canvas"])
+        self.remove_obj_from_canvas(self.parameters.referential.id_line_canvas)
         self.remove_label_ref()
 
     def draw_referential_line(self):
         logging.debug("Drawing referential line")
         self.remove_referential_elements()
 
-        self.parameters["referential"]["id_line_canvas"] = self.draw_line(
-            self.parameters["referential"]["x_src"],
-            self.parameters["referential"]["y_src"],
-            self.parameters["referential"]["x_dest"],
-            self.parameters["referential"]["y_dest"],
-            fill=self.parameters["referential"]["fill"],
-            width=self.parameters["referential"]["width"],
-            tags=self.parameters["referential"]["tags"],
-            dash=self.parameters["referential"]["dash"],
-            arrow=self.parameters["referential"]["arrow"]
-        )
+        self.parameters.referential.set_id_line_canvas(self.draw_line(
+            x_src=self.parameters.get_referential().get_x_src(),
+            y_src=self.parameters.get_referential().get_y_src(),
+            x_dest=self.parameters.get_referential().get_x_dest(),
+            y_dest=self.parameters.get_referential().get_y_dest(),
+            fill=self.parameters.get_referential().get_fill(),
+            width=self.parameters.get_referential().get_width(),
+            tags=self.parameters.get_referential().get_tags(),
+            dash=self.parameters.get_referential().get_dash(),
+            arrow=self.parameters.get_referential().get_arrow()
+        ))
 
         self.update_label_ref_canvas()
 
     def draw_led_lines(self):
         logging.debug("Drawing LED lines")
-        logging.debug(f'LED strips: {self.parameters["led_strips"]}')
+        logging.debug(f'LED strips: {self.parameters.get_led_strips()}')
 
         # get led strips
-        for index_led_strip, led_strip in enumerate(self.parameters["led_strips"]):
+        for index_led_strip, led_strip in enumerate(self.parameters.get_led_strips()):
             logging.debug(f"LED Strip index: {index_led_strip}")
             # get led lines
-            for index_line, led_strip_line in enumerate(self.parameters["led_strips"][index_led_strip]["lines_canvas"]):
+            for index_line, led_strip_line in enumerate(self.parameters.get_led_strips()[index_led_strip].get_lines_canvas()):
                 logging.debug(f"LED Strip line: {led_strip_line}")
                 # draw lines
                 _, [x_src, y_src, x_dest, y_dest] = led_strip_line
-                id_line = self.draw_line(x_src, y_src, x_dest, y_dest, led_strip.get("fill"), led_strip.get("width"),
+                id_line = self.draw_line(x_src, y_src, x_dest, y_dest, led_strip.get_fill(), led_strip.get_width(),
                                          DRAWING)
-                self.parameters["led_strips"][index_led_strip]["lines_canvas"][index_line][0] = id_line
+                self.parameters.led_strips[index_led_strip].lines_canvas[index_line][0] = id_line
 
     """
     UPDATE FUNCTIONS
@@ -388,13 +391,13 @@ class LEDSimulator(Tk):
 
     def set_led_variables(self):
         logging.debug("Setting LED variables on application window")
-        self.led_density_var.set(self.parameters["led_density"])
-        self.led_size_px_var.set(self.parameters["led_size_px"])
+        self.led_density_var.set(self.parameters.led_density)
+        self.led_size_px_var.set(self.parameters.led_size_px)
 
     def update_leds(self, new_value):
         logging.debug("Updating LED strips")
-        self.parameters["led_size_px"] = self.led_size_px_var.get()
-        self.parameters["led_density"] = self.led_density_var.get()
+        self.parameters.led_size_px = self.led_size_px_var.get()
+        self.parameters.led_density = self.led_density_var.get()
         self.generate_led_strips()
 
     def update_position(self, event=None):
@@ -410,7 +413,7 @@ class LEDSimulator(Tk):
                 child.configure(state='normal')
             for child in self.frame_led_display_options.winfo_children():
                 child.configure(state='normal')
-            self.parameters["app_mode"] = DRAWING
+            self.parameters.app_mode = DRAWING
 
         if self.mode.get() == MEASURING:
             for child in self.frame_referential.winfo_children():
@@ -419,7 +422,7 @@ class LEDSimulator(Tk):
                 child.configure(state='disable')
             for child in self.frame_led_display_options.winfo_children():
                 child.configure(state='disable')
-            self.parameters["app_mode"] = MEASURING
+            self.parameters.app_mode = MEASURING
 
     def remove_label_ref(self):
         self.label_ref.destroy()
@@ -428,27 +431,27 @@ class LEDSimulator(Tk):
         # updating the label drawn under the reference line on the canvas
         self.remove_label_ref()
         self.label_ref = Label(self.canvas_image,
-                               text=f'{self.parameters["referential"]["dist_mm_src_to_dest"]} mm')
+                               text=f'{self.parameters.get_referential().get_dist_mm_src_to_dest()} mm')
         self.label_ref.place(
-            x=(self.parameters["referential"]["x_src"] + self.parameters["referential"]["x_dest"]) / 2 - 30,
-            y=(self.parameters["referential"]["y_src"] + self.parameters["referential"]["y_dest"]) / 2 + 10)
+            x=(self.parameters.get_referential().get_x_src() + self.parameters.get_referential().get_x_dest()) / 2 - 30,
+            y=(self.parameters.get_referential().get_y_src() + self.parameters.get_referential().get_y_dest()) / 2 + 10)
 
     def update_label_ref_dist_px(self):
         # updating
-        self.distance_pixel_var.set(f'{int(self.parameters["referential"]["dist_px_src_to_dest"])}')
+        self.distance_pixel_var.set(f'{int(self.parameters.get_referential().get_dist_px_src_to_dest())}')
 
     def update_label_ref_ratio(self):
-        self.px_to_mm_label.config(text=f'1 px = {self.parameters["referential"]["ratio_px_to_mm"]:.2f} mm')
+        self.px_to_mm_label.config(text=f'1 px = {self.parameters.get_referential().get_ratio_px_to_mm():.2f} mm')
 
     def update_ref_entry(self, var, index, mode):
-        self.parameters["referential"].update_referential_from_dist_mm(var)
+        self.parameters.referential.update_referential_from_dist_mm(var)
 
     def update_label_ref_callback(self):
         try:
-            self.parameters["referential"].update_referential_from_dist_mm(self.distance_mm_var.get())
+            self.parameters.referential.update_referential_from_dist_mm(self.distance_mm_var.get())
         except TclError:
             logging.debug("Distance in mm entry is None or empty string")
-            self.parameters["referential"].update_referential_from_dist_mm(1000)
+            self.parameters.referential.update_referential_from_dist_mm(1000)
 
         self.update_label_ref_dist_px()
         self.update_label_ref_canvas()
