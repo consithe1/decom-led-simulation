@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 from src.rgb_leds.led import LED
 from src.utils.parameters import Parameters
+from src.utils.referential import Referential
 from src.utils.constants import *
 from src.utils.file_utils import FileUtils
 from PIL import ImageTk, Image
@@ -42,16 +43,22 @@ class LEDSimulator(Tk):
         self.menu_bar = Menu(self)
         self.config(menu=self.menu_bar)
 
+        self.menu_main = Menu(self.menu_bar)
+        self.menu_main.add_command(label='Clear All', command=self.clear_canvas_from_all)
+        self.menu_main.add_command(label='Exit', command=self.quit)
+        self.menu_bar.add_cascade(label="Main", menu=self.menu_main)
+
         self.menu_led_display = Menu(self.menu_bar)
 
         self.menu_led_display.add_command(label='Open LED Display', command=self.open_existing_simulation)
         self.menu_led_display.add_command(label='Save LED Display', command=self.save_simulation_to_file)
         self.menu_led_display.add_separator()
-        self.menu_led_display.add_command(label='Exit', command=self.quit)
+
         self.menu_bar.add_cascade(label="LED Display", menu=self.menu_led_display)
 
         self.menu_background = Menu(self.menu_bar)
-        self.menu_background.add_command(label='Add Image to background', command=self.open_image_with_ask_dialog)
+        self.menu_background.add_command(label='Add image', command=self.open_image_with_ask_dialog)
+        self.menu_background.add_command(label='Remove image', command=self.remove_image_from_background)
         self.menu_bar.add_cascade(label="Background", menu=self.menu_background)
 
         # FRAME DESCRIPTION
@@ -111,7 +118,7 @@ class LEDSimulator(Tk):
                                            relief="ridge")
         Label(self.frame_drawing_options, text="LED Drawing").grid(row=0, sticky="nsew")
         Button(self.frame_drawing_options, text="Undo", command=self.undo_last_draw).grid(row=1, sticky="nsew")
-        Button(self.frame_drawing_options, text="Clear", command=self.clear_canvas).grid(row=2, sticky="nsew")
+        Button(self.frame_drawing_options, text="Clear", command=self.clear_canvas_from_led_display).grid(row=2, sticky="nsew")
         self.frame_drawing_options.grid(row=1, column=1, sticky="news", padx=5, pady=5)
 
         # FRAME LED DISPLAY OPTIONS
@@ -179,7 +186,7 @@ class LEDSimulator(Tk):
 
     def open_existing_simulation(self):
         # clear canvas from previous drawn stuff
-        self.clear_all_canvas()
+        self.clear_canvas_from_all()
 
         self.parameters = FileUtils.read_simulation_from_file(
             filedialog.askopenfilename(
@@ -226,22 +233,29 @@ class LEDSimulator(Tk):
         logging.debug("Removing all objects given from canvas")
         [self.remove_obj_from_canvas(id_obj) for id_obj in list_ids]
 
-    def clear_canvas(self, option=DRAWING):
-        logging.debug("Clearing canvas based on option given")
-        if option == DRAWING:
-            for led_strip in self.parameters.get_led_strips():
-                [self.remove_obj_from_canvas(id_obj) for id_obj in led_strip.delete_object()]
+    def clear_canvas_from_led_display(self):
+        for led_strip in self.parameters.get_led_strips():
+            [self.remove_obj_from_canvas(id_obj) for id_obj in led_strip.delete_object()]
 
-            self.parameters.set_led_strips([])
+        self.parameters.set_led_strips([])
 
-        elif option == MEASURING:
-            self.canvas_image.delete(self.parameters.remove_referential_from_canvas())
-            self.remove_label_ref()
+    def clear_canvas_from_referential_line(self):
+        self.canvas_image.delete(self.parameters.remove_referential_from_canvas())
+        self.remove_label_ref()
+        self.parameters.set_referential(Referential())
 
-    def clear_all_canvas(self):
+    def clear_canvas_from_ref_and_leds(self):
         logging.debug("Clearing canvas from referential line and led strips")
-        self.clear_canvas(DRAWING)
-        self.clear_canvas(MEASURING)
+        self.clear_canvas_from_referential_line()
+        self.clear_canvas_from_led_display()
+
+    def clear_canvas_from_all(self):
+        self.clear_canvas_from_ref_and_leds()
+        self.remove_image_from_background()
+
+    def remove_image_from_background(self):
+        self.canvas_image.delete(self.id_image_canvas)
+        self.id_image_canvas = None
 
     def button_1_released(self, event):
         self.add_line(event)
