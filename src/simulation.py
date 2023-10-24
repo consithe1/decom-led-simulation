@@ -188,20 +188,14 @@ class LEDSimulator(Tk):
         # clear canvas from previous drawn stuff
         self.clear_canvas_from_all()
 
-        self.parameters = FileUtils.read_simulation_from_file(
-            filedialog.askopenfilename(
-                title="Open Simulation File", filetypes=[('Decom Files', '*.decom')],
-                defaultextension='.decom', initialdir=DIR_LED_DISPLAY_DEFAULT)
-        )
+        file_to_read = filedialog.askopenfilename(
+                title="Open Simulation File", filetypes=[(DECOM_FILES_STR, f'*{DECOM_FILE_EXT}')],
+                defaultextension=DECOM_FILE_EXT, initialdir=DIR_LED_DISPLAY_DEFAULT)
+
+        self.parameters = FileUtils.read_simulation_from_file(file_to_read)
 
         logging.debug(f"Parameters after import: {vars(self.parameters)}")
-
-        # remove possible previous background
-        self.canvas_image.delete(self.id_image_canvas)
-
         self.set_led_variables()
-
-        logging.debug(f'Opening simulation at {self.parameters.get_simu_dest_path()}')
         self.open_image(self.parameters.get_image_src_path())
 
         # update vars
@@ -212,9 +206,9 @@ class LEDSimulator(Tk):
 
     def save_simulation_to_file(self):
         # file format : .decom
-        self.parameters.set_simu_dest_path(filedialog.asksaveasfilename(initialfile='led_display-1',
-                                                                        defaultextension=".decom",
-                                                                        filetypes=[("Decom Files", "*.decom")],
+        self.parameters.set_simu_dest_path(filedialog.asksaveasfilename(initialfile=LED_DISPLAY_DEFAULT_FILENAME,
+                                                                        defaultextension=DECOM_FILE_EXT,
+                                                                        filetypes=[(DECOM_FILES_STR, f"*{DECOM_FILE_EXT}")],
                                                                         initialdir=DIR_LED_DISPLAY_DEFAULT))
         FileUtils.save_simulation_to_file(self.parameters)
         logging.debug(f'Saving simulation to {self.parameters.get_simu_dest_path()}')
