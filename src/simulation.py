@@ -238,7 +238,7 @@ class LEDSimulator(Tk):
             [self.remove_obj_from_canvas(id_del) for id_del in ids_to_del]
 
     def remove_objs_from_canvas(self, list_ids: list[int]):
-        self.logger.debug("Removing given all objects from canvas")
+        self.logger.debug("Removing all objects in parameters from canvas")
         [self.remove_obj_from_canvas(id_obj) for id_obj in list_ids]
 
     def clear_canvas_from_led_display(self):
@@ -290,32 +290,32 @@ class LEDSimulator(Tk):
         self.update_position(event)
 
     def import_led_strips(self):
-        self.logger.debug("Importing LED strips")
+        self.logger.info("Importing LED strips")
 
         # instead of calculating new positions and stuff, just add new led to canvas
         self.draw_led_lines()
         self.draw_led_strips()
 
     def draw_led(self, led: LED):
-        self.logger.debug(f"LED to draw: {led}")
+        self.logger.info(f"LED to draw: {led}")
         x0, y0, x1, y1 = led.get_rect_coordinates()
 
         id_led = self.canvas_image.create_rectangle(x0, y0, x1, y1, fill=led.get_color())
         return id_led
 
     def draw_led_strip(self, index_led_strip):
-        self.logger.debug(f"Drawing LED Strip n°{index_led_strip + 1}")
+        self.logger.info(f"Drawing LED Strip n°{index_led_strip + 1}")
         for i_led, led in enumerate(self.parameters.get_led_strip_at_index(index_led_strip).get_list_leds()):
             id_led_canvas = self.draw_led(led)
             self.parameters.led_strips[index_led_strip].update_id_led_canvas_at_index(i_led, id_led_canvas)
 
     def draw_led_strips(self):
-        self.logger.debug("Drawing ALL led strips")
+        self.logger.info("Drawing ALL led strips")
         for index_l_strip in range(len(self.parameters.get_led_strips())):
             self.draw_led_strip(index_l_strip)
 
     def generate_led_strips(self):
-        self.logger.debug("Generating LED strips")
+        self.logger.info("Generating LED strips")
         prev_strip_index, prev_led_index, prev_led_id = -1, -1, None
 
         for i in range(len(self.parameters.get_led_strips())):
@@ -380,7 +380,7 @@ class LEDSimulator(Tk):
         self.remove_label_ref()
 
     def draw_referential_line(self):
-        self.logger.debug("Drawing referential line")
+        self.logger.info("Drawing referential line")
         self.remove_referential_elements()
 
         self.parameters.referential.set_id_line_canvas(self.draw_line(
@@ -454,9 +454,11 @@ class LEDSimulator(Tk):
             self.parameters.app_mode = MEASURING
 
     def remove_label_ref(self):
+        self.logger.debug("Removing referential label from canvas")
         self.label_ref.destroy()
 
     def update_label_ref_canvas(self):
+        self.logger.debug("Updating referential label on canvas")
         # updating the label drawn under the reference line on the canvas
         self.remove_label_ref()
         self.label_ref = Label(self.canvas_image,
@@ -466,16 +468,20 @@ class LEDSimulator(Tk):
             y=(self.parameters.get_referential().get_y_src() + self.parameters.get_referential().get_y_dest()) / 2 + 10)
 
     def update_label_ref_dist_px(self):
+        self.logger.debug("Updating referential distance in pixels label")
         # updating
         self.distance_pixel_var.set(f'{int(self.parameters.get_referential().get_dist_px_src_to_dest())}')
 
     def update_label_ref_ratio(self):
+        self.logger.debug("Updating referential ratio label")
         self.px_to_mm_label.config(text=f'1 px = {self.parameters.get_referential().get_ratio_px_to_mm():.2f} mm')
 
     def update_ref_entry(self, var, index, mode):
+        self.logger.debug("User modified referential distance in mm Entry")
         self.parameters.referential.update_referential_from_dist_mm(var)
 
     def update_label_ref_callback(self):
+        self.logger.debug("Updating all referential labels")
         try:
             self.parameters.referential.update_referential_from_dist_mm(self.distance_mm_var.get())
         except TclError:
@@ -492,7 +498,7 @@ class LEDSimulator(Tk):
         pass
 
     def update_all_variables_and_fields(self, var=None, index=None, mode=None):
-        self.logger.debug("Updating all variables")
+        self.logger.debug("Updating all variables and fields")
         # drawing or measuring
         self.update_mode()
         # update LEDs based on density and display size

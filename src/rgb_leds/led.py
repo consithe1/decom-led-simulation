@@ -136,7 +136,10 @@ class LED(object):
         self.led_width_mm = value
 
     def get_rect_coordinates(self):
-        return int(self.get_x() - self.get_led_size_px() / 2), int(self.get_y() - self.get_led_size_px() / 2), int(
+        self.logger.info("Calculating LED rectangle coordinates for canvas")
+        x0, y0, x1, y1 = int(self.get_x() - self.get_led_size_px() / 2), int(self.get_y() - self.get_led_size_px() / 2), int(
             self.get_x() + self.get_led_size_px() / 2), int(self.get_y() + self.get_led_size_px() / 2)
+        self.logger.debug(f"LED rectangle on canvas: {x0, y0} - {x1, y1}")
+        return x0, y0, x1, y1
 
 

@@ -103,13 +103,18 @@ class Referential(object):
         self.y_dest = y
 
     def set_ratio_px_to_mm(self):
+        self.logger.info("Calculating referential ratio (1 px = x mm)")
         self.ratio_px_to_mm = self.dist_mm_src_to_dest / self.dist_px_src_to_dest
+        self.logger.debug(f"Calculated ratio: {self.get_ratio_px_to_mm()}")
 
     def set_dist_px_src_to_dest(self):
+        self.logger.info("Calculating referential distance between (x_src, y_src) and (x_dest, y_dest) in pixels")
         self.dist_px_src_to_dest = math.sqrt(
             math.pow(self.get_x_dest() - self.get_x_src(), 2) + math.pow(self.get_y_dest() - self.get_x_dest(), 2))
+        self.logger.debug(f"Calculated distance: {self.get_dist_px_src_to_dest()} pixels")
 
     def update_referential(self, x_dest, y_dest, dist_mm_input):
+        self.logger.info("Updating referential")
         # update x et y dest
         self.set_x_dest(x_dest)
         self.set_y_dest(y_dest)
@@ -117,6 +122,7 @@ class Referential(object):
         self.update_referential_from_dist_mm(dist_mm_input)
 
     def update_referential_from_dist_mm(self, dist_mm_input):
+        self.logger.info("Updating referential from distance in mm")
         # update distance in px between src and dest
         self.set_dist_px_src_to_dest()
         # update distance in mm between src and dest
@@ -125,6 +131,7 @@ class Referential(object):
         self.set_ratio_px_to_mm()
 
     def remove_from_canvas(self):
+        self.logger.info("Removing referential line (canvas and coordinates)")
         to_delete_id_line = self.get_id_line_canvas()
         self.set_id_line_canvas(None)
         self.set_x_src(None)
