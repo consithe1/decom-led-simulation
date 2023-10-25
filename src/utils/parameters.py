@@ -98,6 +98,6 @@ class Parameters(object):
         return self.led_strips.pop()
 
     def remove_referential_from_canvas(self):
-        self.referential.remove_from_canvas()
+        return self.referential.remove_from_canvas()
 
 

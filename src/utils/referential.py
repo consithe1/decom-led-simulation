@@ -122,4 +122,8 @@ class Referential(object):
     def remove_from_canvas(self):
         to_delete_id_line = self.get_id_line_canvas()
         self.set_id_line_canvas(None)
+        self.set_x_src(None)
+        self.set_y_src(None)
+        self.set_x_dest(None)
+        self.set_y_dest(None)
         return to_delete_id_line

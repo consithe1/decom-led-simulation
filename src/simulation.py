@@ -236,7 +236,6 @@ class LEDSimulator(Tk):
     def clear_canvas_from_referential_line(self):
         self.canvas_image.delete(self.parameters.remove_referential_from_canvas())
         self.remove_label_ref()
-        self.parameters.set_referential(Referential())
 
     def clear_canvas_from_ref_and_leds(self):
         logging.debug("Clearing canvas from referential line and led strips")
