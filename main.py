@@ -6,7 +6,7 @@ import os
 import yaml
 
 
-def setup_logging(default_path='../logging.yaml', default_level=logging.INFO, env_key='LOG_CFG'):
+def setup_logging(default_path='../logging.yaml', default_level=logging.DEBUG, env_key='LOG_CFG'):
     path = default_path
     value = os.getenv(env_key, None)
     if value:

@@ -10,6 +10,8 @@ class Parameters(object):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
+        self.logger.debug("Init Parameters object")
+
         self.led_density = 30
         self.app_mode = MEASURING
         self.led_size_px = 2
@@ -91,6 +93,7 @@ class Parameters(object):
         self.height = value
 
     def add_led_strip(self, line_canvas):
+        self.logger.debug("add_led_strip")
         self.led_strips.append(LEDStrip(line_canvas, self.next_strip_id))
         self.next_strip_id += 1
 

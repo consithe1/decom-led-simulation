@@ -7,7 +7,7 @@ class Referential(object):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-        self.logger.debug("Creating object")
+        self.logger.debug("Init Referential object")
 
         self.x_src = None
         self.y_src = None

@@ -4,6 +4,8 @@ disable_existing_loggers: true
 formatters:
   simple:
     format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_format:
+    format: "%(levelname)s - %(message)s"
 
 handlers:
   console:
@@ -15,6 +17,7 @@ handlers:
   file_handler:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
+    formatter: file_format
     filename: ../logs/lsd_t.log
 
 loggers:
