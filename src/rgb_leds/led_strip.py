@@ -1,4 +1,5 @@
 import math
+import logging
 
 from src.rgb_leds.led import LED
 
@@ -32,6 +33,9 @@ def calculate_line_length(x_src, y_src, x_dest, y_dest):
 class LEDStrip(object):
 
     def __init__(self, lines=None, next_strip_id=0):
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(f"Creating LED strip with id: {next_strip_id}")
+
         if lines is None:
             lines = []
 
@@ -108,6 +112,7 @@ class LEDStrip(object):
         return len(self.list_leds)
 
     def remove_leds(self):
+        self.logger.info("Removing LEDs")
         to_delete_ids = []
         for led in self.list_leds:
             to_delete_ids.append(led.get_id_led_canvas())
@@ -116,6 +121,7 @@ class LEDStrip(object):
         return to_delete_ids
 
     def delete_object(self):
+        self.logger.info("Gathering IDs of objects to delete on canvas (leds and lines)")
         to_delete_ids = []
         for id_line, _ in self.lines_canvas:
             to_delete_ids.append(id_line)
@@ -128,9 +134,11 @@ class LEDStrip(object):
         return to_delete_ids
 
     def update_id_led_canvas_at_index(self, index_led, new_led_id):
+        self.logger.info(f"Updating canvas ID of LED at index: {index_led}")
         self.list_leds[index_led].set_id_led_canvas(new_led_id)
 
     def generate_path_between_canvas_lines(self):
+        self.logger.info("Generating path between canvas lines, pixel by pixel")
         # ratio_px_to_mm -> 1 px = x mm
 
         full_path = []
@@ -141,9 +149,11 @@ class LEDStrip(object):
         return full_path
 
     def add_prev_id_to_led(self, index, prev_id):
+        self.logger.info(f"Adding ID previous LED {prev_id} to LED at index {index}")
         self.list_leds[index].set_id_previous_led(prev_id)
 
     def add_next_id_to_led(self, index, next_id):
+        self.logger.info(f"Adding ID next LED {next_id} to LED at index {index}")
         self.list_leds[index].set_id_next_led(next_id)
 
     def get_id_led_at_index(self, index):
@@ -153,6 +163,7 @@ class LEDStrip(object):
         return self.list_leds[index]
 
     def calculate_led_positions(self, ratio_px_to_mm, density, led_size):
+        self.logger.info(f"Calculating LED positions based on density: {density} LEDs/m - LED size parameter: {led_size} px - Ratio px to mm: {ratio_px_to_mm}")
         path = self.generate_path_between_canvas_lines()
 
         # define distance between leds in px
@@ -171,6 +182,7 @@ class LEDStrip(object):
             travel_distance += 1
 
     def add_new_led(self, x, y, led_size):
+        self.logger.info(f"Adding new LED at position {x, y}")
         self.list_leds.append(LED(x=x, y=y, led_size_px=led_size, color='pink', id_strip=self.get_strip_id(),
                                   led_id_from_strip=self.get_next_led_id(),
                                   led_id=f'{self.get_strip_id()}-{self.get_next_led_id()}'))

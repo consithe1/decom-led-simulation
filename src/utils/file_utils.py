@@ -1,11 +1,11 @@
 import jsonpickle
-import json
 import logging
 
 from src.utils.parameters import Parameters
 
 
 class FileUtils:
+    logger = logging.getLogger(__name__)
 
     @staticmethod
     def save_simulation_to_file(parameters: Parameters):
@@ -15,6 +15,4 @@ class FileUtils:
     @staticmethod
     def read_simulation_from_file(filepath):
         with open(filepath, 'r') as readfile:
-            reading = jsonpickle.decode(readfile.read(), keys=True)
-            logging.debug(f"Import: {reading}")
-            return reading
+            return jsonpickle.decode(readfile.read(), keys=True)
