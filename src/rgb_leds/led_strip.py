@@ -1,4 +1,5 @@
 import math
+import logging
 
 from src.rgb_leds.led import LED
 
@@ -32,6 +33,9 @@ def calculate_line_length(x_src, y_src, x_dest, y_dest):
 class LEDStrip(object):
 
     def __init__(self, lines=None, next_strip_id=0):
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(f"Creating LED strip with id: {next_strip_id}")
+
         if lines is None:
             lines = []
 

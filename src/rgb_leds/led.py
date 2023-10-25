@@ -1,9 +1,15 @@
+import logging
+
+
 class LED(object):
 
     def __init__(self, x=None, y=None, color='pink', led_size_px=2, id_led_canvas=None, id_strip=None, led_id=None,
                  led_id_from_strip=None, id_previous_led=None, id_next_led=None, manufacturer=None,
                  ic_per_led_active=None, ic_per_led_idle=None, input_voltage=None, waterproof_level=None,
                  led_width_mm=None, led_height_mm=None):
+
+        self.logger = logging.getLogger(__name__)
+
         self.manufacturer = manufacturer
         self.ic_per_led_active = ic_per_led_active
         self.ic_per_led_idle = ic_per_led_idle

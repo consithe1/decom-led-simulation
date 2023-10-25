@@ -1,12 +1,15 @@
+import logging
+
 from src.utils.referential import Referential
 from src.rgb_leds.led_strip import LEDStrip
 from src.utils.constants import *
-import logging
 
 
 class Parameters(object):
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
         self.led_density = 30
         self.app_mode = MEASURING
         self.led_size_px = 2

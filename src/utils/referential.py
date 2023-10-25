@@ -1,9 +1,14 @@
 import math
+import logging
 
 
 class Referential(object):
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
+        self.logger.debug("Creating object")
+
         self.x_src = None
         self.y_src = None
         self.x_dest = None
