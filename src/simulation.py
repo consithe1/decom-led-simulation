@@ -34,7 +34,7 @@ class LEDSimulator(Tk):
         self.tk_image = None
 
         self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}")
-        self.title("LED Simulator")
+        self.title(SIMULATOR_NAME)
 
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
