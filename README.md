@@ -46,4 +46,4 @@ The same way it is saved, it can be imported in the application by selecting a v
 
 ## Known Issues
 - Updating the distance in mm doesn't actualise properly the LED display
-- Images are not properly resized when imported : need to resize the image and center it on the canvas
+- Images are not properly resized when imported: need to resize the image and center it on the canvas
