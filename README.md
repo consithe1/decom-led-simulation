@@ -44,4 +44,5 @@ The same way it is saved, it can be imported in the application by selecting a v
 - `.decom` import verifications
 
 ## Known Issues
-- Updating the distance in mm doesn't actualise properly the LED display
+- Updating the distance in mm doesn't actualise properly the LED displays
+- "Clear All" button doesn't remove the referential line

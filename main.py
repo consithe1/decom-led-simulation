@@ -1,4 +1,4 @@
-from simulation import LEDSimulator
+from src.simulation import LEDSimulator
 import logging
 
 if __name__ == '__main__':
